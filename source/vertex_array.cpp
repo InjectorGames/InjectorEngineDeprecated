@@ -2,35 +2,26 @@
 
 namespace Injector
 {
-	void VertexArray::EnableVertexArrayAttrib(GLuint index)
+	GLuint VertexArray::GenerateVertexArray()
 	{
-		glEnableVertexAttribArray(index);
-	}
-	void VertexArray::DisableVertexArrayAttrib(GLuint index)
-	{
-		glDisableVertexAttribArray(index);
-	}
-
-	void VertexArray::SetVertexArrayAttribPointer(GLuint index, AttribSize size, AttribType type, bool normalized, GLsizei stride, const GLvoid* pointer)
-	{
-		glVertexAttribPointer(index, (GLint)size, (GLenum)type, normalized ? GL_TRUE : GL_FALSE, stride, pointer);
-	}
-
-	VertexArray::VertexArray()
-	{
+		GLuint vertexArray;
 		glGenVertexArrays(GL_ONE, &vertexArray);
+		return vertexArray;
 	}
-	VertexArray::~VertexArray()
+	void VertexArray::DeleteVertexArray(GLuint vertexArray)
 	{
 		glDeleteVertexArrays(GL_ONE, &vertexArray);
 	}
 
-	GLuint VertexArray::GetVertexArray()
-	{
-		return vertexArray;
-	}
-	void VertexArray::BindVertexArray()
+	VertexArray::VertexArray() : vertexArray(GenerateVertexArray()) {}
+	VertexArray::~VertexArray() { DeleteVertexArray(vertexArray); }
+
+	void VertexArray::BindVertexArray() const
 	{
 		glBindVertexArray(vertexArray);
+	}
+	void VertexArray::UnbindVertexArray()
+	{
+		glBindVertexArray(GL_ZERO);
 	}
 }

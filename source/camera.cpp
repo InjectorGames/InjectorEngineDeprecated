@@ -2,7 +2,7 @@
 
 namespace Injector
 {
-	Camera::Camera() : Transform(glm::vec3(0.0f, 0.0f, -2.0f))
+	Camera::Camera() : Transform(glm::vec3(0.0f, 0.0f, -2.0f)), Entity("UntitledCamera")
 	{
 		projMatrix = glm::mat4(1.0f);
 		viewProjMatrix = glm::mat4(1.0f);
@@ -45,14 +45,10 @@ namespace Injector
 	{
 		auto view = GetMatrix();
 		auto proj = GetProjMatrix();
-		auto viewProj = GetViewProjMatrix();
+		auto viewProj = proj * view;
 
 		for (const auto& renderer : renderers)
-		{
-			auto model = renderer->GetMatrix();
-			auto mvp = viewProj * model;
-			renderer->OnRender(model, view, proj, viewProj, mvp);
-		}
+			renderer->OnRender(view, proj, viewProj);
 	}
 
 	void Camera::AddRenderer(std::shared_ptr<Renderer> renderer)

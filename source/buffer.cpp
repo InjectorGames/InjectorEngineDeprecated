@@ -2,30 +2,31 @@
 
 namespace Injector
 {
-	Buffer::Buffer(Type _type, Usage _usage, GLsizeiptr _size, const GLvoid* data)
+	GLuint Buffer::GenerateBuffer()
 	{
-		type = _type;
-		usage = _usage;
-
+		GLuint buffer;
 		glGenBuffers(GL_ONE, &buffer);
-
-		BindBuffer();
-		SetBufferData(_size, data);
+		return buffer;
 	}
-
-	Buffer::~Buffer()
+	void Buffer::DeleteBuffer(GLuint buffer)
 	{
 		glDeleteBuffers(GL_ONE, &buffer);
 	}
 
-	GLuint Buffer::GetBuffer()
+	Buffer::Buffer(Type _type, Usage _usage, GLsizeiptr _size, const GLvoid* data) : buffer(GenerateBuffer()), type(_type)
 	{
-		return buffer;
+		usage = _usage;
+
+		BindBuffer();
+		SetBufferData(_size, data);
+		UnbindBuffer();
 	}
-	Buffer::Type Buffer::GetType()
+
+	Buffer::~Buffer()
 	{
-		return type;
+		DeleteBuffer(buffer);
 	}
+
 	Buffer::Usage Buffer::GetUsage()
 	{
 		return usage;
@@ -35,9 +36,13 @@ namespace Injector
 		return size;
 	}
 
-	void Buffer::BindBuffer()
+	void Buffer::BindBuffer() const
 	{
 		glBindBuffer((GLenum)type, buffer);
+	}
+	void Buffer::UnbindBuffer() const
+	{
+		glBindBuffer((GLenum)type, GL_ZERO);
 	}
 
 	void Buffer::SetBufferData(GLsizeiptr _size, const GLvoid* data)
@@ -45,6 +50,13 @@ namespace Injector
 		size = _size;
 		glBufferData((GLenum)type, _size, data, (GLenum)usage);
 	}
+	void Buffer::SetBufferData(Usage _usage, GLsizeiptr _size, const GLvoid* data)
+	{
+		usage = _usage;
+		size = _size;
+		glBufferData((GLenum)type, _size, data, (GLenum)_usage);
+	}
+
 	void Buffer::SetBufferSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data)
 	{
 		glBufferSubData((GLenum)type, offset, size, data);

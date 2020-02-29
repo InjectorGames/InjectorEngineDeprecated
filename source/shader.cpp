@@ -2,12 +2,26 @@
 
 namespace Injector
 {
-	Shader::Shader(Type _type, const std::string& source)
+	GLuint Shader::CreateShader(Type type)
 	{
-		type = _type;
-		shader = glCreateShader((GLenum)_type);
-		
-		auto chars = (const GLchar*)source.c_str();
+		return glCreateShader((GLenum)type);
+	}
+	void Shader::DeleteShader(GLuint shader)
+	{
+		glDeleteShader(shader);
+	}
+
+	Shader::Shader(Type _type, const std::string& source, bool readFromFile) : shader(CreateShader(_type)), type(_type)
+	{
+		// TODO: get hight opengl version
+		std::string code("#version 330\n");
+
+		if (readFromFile)
+			code += Engine::ReadTextFromFile(source);
+		else
+			code += source;
+
+		auto chars = (const GLchar*)code.c_str();
 		glShaderSource(shader, GL_ONE, &chars, nullptr);
 
 		glCompileShader(shader);
@@ -28,15 +42,6 @@ namespace Injector
 	}
 	Shader::~Shader()
 	{
-		glDeleteShader(shader);
-	}
-
-	GLuint Shader::GetShader()
-	{
-		return shader;
-	}
-	Shader::Type Shader::GetType()
-	{
-		return type;
+		DeleteShader(shader);
 	}
 }

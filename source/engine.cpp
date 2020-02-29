@@ -8,13 +8,19 @@ namespace Injector
 	double Engine::lastTime = 0;
 	double Engine::deltaTime = 0;
 
+	bool Engine::cullFace = false;
+	bool Engine::depthTest = false;
+
 	GLFWwindow* Engine::mainWindow = nullptr;
 	std::set<std::shared_ptr<Entity>> Engine::entities = {};
 
-	std::shared_ptr<UnlitMaterial> Engine::unlitMaterial;
+	std::shared_ptr<AmbientMaterial> Engine::ambientMaterial;
+	std::shared_ptr<DiffuseMaterial> Engine::diffuseMaterial;
 
-	std::shared_ptr<VertMesh> Engine::vertMeshTriangle;
-	std::shared_ptr<VertMesh> Engine::vertMeshQuad;
+	std::shared_ptr<Mesh> Engine::triangleMeshV;
+	std::shared_ptr<Mesh> Engine::squareMeshV;
+	std::shared_ptr<Mesh> Engine::cubeMeshV;
+	std::shared_ptr<Mesh> Engine::cubeMeshVN;
 
 	void Engine::ErrorCallback(int error, const char* description)
 	{
@@ -96,10 +102,16 @@ namespace Injector
 		if (!glfwInit())
 			throw std::runtime_error("Failed to intialize GLFW.");
 
-		//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-		mainWindow = glfwCreateWindow(640, 480, "My Title", nullptr, nullptr);
+#ifndef NDEBUG
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+#else
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_FALSE);
+#endif
+
+		mainWindow = glfwCreateWindow(800, 600, "Injector Engine", nullptr, nullptr);
 
 		if (!mainWindow)
 			throw std::runtime_error("Failed to create GLFW window.");
@@ -116,13 +128,26 @@ namespace Injector
 
 		glfwMakeContextCurrent(mainWindow);
 
+		Image logo16("resources/images/logo_16.png", 4);
+		Image logo32("resources/images/logo_32.png", 4);
+		Image logo48("resources/images/logo_48.png", 4);
+
+		GLFWimage logos[3]{ logo16.GetGLFW(), logo32.GetGLFW(), logo48.GetGLFW(), };
+		glfwSetWindowIcon(mainWindow, 3, logos);
+
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			throw std::runtime_error("Failed to initialize OpenGL context");
 
-		unlitMaterial = std::make_shared<UnlitMaterial>(ReadFromFile("resources/shaders/unlit.vert"), ReadFromFile("resources/shaders/unlit.frag"));
+		SetCullFace(true);
+		SetDepthTest(true);
 
-		vertMeshTriangle = VertMesh::CreateTriangle();
-		vertMeshQuad = VertMesh::CreateQuad();
+		ambientMaterial = std::make_shared<AmbientMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/ambient.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/ambient.frag", true));
+		diffuseMaterial = std::make_shared<DiffuseMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/diffuse.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/diffuse.frag", true));
+
+		triangleMeshV = Mesh::CreateTriangleV();
+		squareMeshV = Mesh::CreateSquareV();
+		cubeMeshV = Mesh::CreateCubeV();
+		cubeMeshVN = Mesh::CreateCubeVN();
 
 		isInitialized = true;
 
@@ -137,10 +162,13 @@ namespace Injector
 
 		entities.clear();
 
-		unlitMaterial = {};
+		ambientMaterial = {};
+		diffuseMaterial = {};
 
-		vertMeshTriangle = {};
-		vertMeshQuad = {};
+		triangleMeshV = {};
+		squareMeshV = {};
+		cubeMeshV = {};
+		cubeMeshVN = {};
 
 		if(mainWindow)
 			glfwDestroyWindow(mainWindow);
@@ -161,7 +189,12 @@ namespace Injector
 
         while (!glfwWindowShouldClose(mainWindow))
         {
-			glClear(GL_COLOR_BUFFER_BIT);
+			auto clearMask = GL_COLOR_BUFFER_BIT;
+
+			if (depthTest)
+				clearMask |= GL_DEPTH_BUFFER_BIT;
+
+			glClear(clearMask);
 
 			time = glfwGetTime();
 			deltaTime = time - lastTime;
@@ -180,7 +213,7 @@ namespace Injector
 #endif
 	}
 
-	std::string Engine::ReadFromFile(const std::string& filePath)
+	std::string Engine::ReadTextFromFile(const std::string& filePath)
 	{
 		std::ifstream ifs(filePath);
 
@@ -208,6 +241,34 @@ namespace Injector
 		return deltaTime;
 	}
 
+	bool Engine::GetCullFace()
+	{
+		return cullFace;
+	}
+	void Engine::SetCullFace(bool value)
+	{
+		cullFace = value;
+
+		if(value)
+			glEnable(GL_CULL_FACE);
+		else
+			glDisable(GL_CULL_FACE);
+	}
+
+	bool Engine::GetDepthTest()
+	{
+		return depthTest;
+	}
+	void Engine::SetDepthTest(bool value)
+	{
+		depthTest = value;
+
+		if (value)
+			glEnable(GL_DEPTH_TEST);
+		else
+			glDisable(GL_DEPTH_TEST);
+	}
+
 	void Engine::AddEntity(std::shared_ptr<Entity> entity)
 	{
 		if (!entities.emplace(entity).second)
@@ -227,18 +288,30 @@ namespace Injector
 #endif
 	}
 
-	std::shared_ptr<UnlitMaterial> Engine::GetUnlitMaterial()
+	std::shared_ptr<AmbientMaterial> Engine::GetAmbientMaterial()
 	{
-		return unlitMaterial;
+		return ambientMaterial;
+	}
+	std::shared_ptr<DiffuseMaterial> Engine::GetDiffuseMaterial()
+	{
+		return diffuseMaterial;
 	}
 
-	std::shared_ptr<VertMesh> Engine::GetVertMeshTriangle()
+	std::shared_ptr<Mesh> Engine::GetTriangleMeshV()
 	{
-		return vertMeshTriangle;
+		return triangleMeshV;
 	}
-	std::shared_ptr<VertMesh> Engine::GetVertMeshQuad()
+	std::shared_ptr<Mesh> Engine::GetSquareMeshV()
 	{
-		return vertMeshQuad;
+		return squareMeshV;
+	}
+	std::shared_ptr<Mesh> Engine::GetCubeMeshV()
+	{
+		return cubeMeshV;
+	}
+	std::shared_ptr<Mesh> Engine::GetCubeMeshVN()
+	{
+		return cubeMeshVN;
 	}
 
 	// TODO: add debug extension load

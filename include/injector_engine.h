@@ -69,28 +69,29 @@ namespace Injector
 			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
 		};
 	protected:
-		GLuint shader;
-		Type type;
-		
+		static GLuint CreateShader(Type type);
+		static void DeleteShader(GLuint shader);
 	public:
-		Shader(Type type, const std::string& source);
-		~Shader();
+		const GLuint shader;
+		const Type type;
 
-		GLuint GetShader();
-		Type GetType();
+		Shader(Type type, const std::string& source, bool readFromFile);
+		~Shader();
 	};
 
 	class Material
 	{
 	protected:
-		GLuint program;
+		static GLuint CreateProgram();
+		static void DeleteProgram(GLuint program);
 
-		void AttachShader(GLuint shader);
-		void DetachShader(GLuint shader);
+		static void AttachShader(GLuint program, GLuint shader);
+		static void DetachShader(GLuint program, GLuint shader);
 
-		void LinkProgram();
+		static void LinkProgram(GLuint program);
 
-		GLuint GetUniformLocation(const std::string& name);
+		static GLuint GetUniformLocation(GLuint program, const std::string& name);
+		GLuint GetUniform(const std::string& name) const;
 
 		static void SetUniform(GLint index, GLfloat value);
 		static void SetUniform(GLint index, const glm::vec2& value);
@@ -100,31 +101,54 @@ namespace Injector
 		static void SetUniform(GLint index, const glm::mat3& value);
 		static void SetUniform(GLint index, const glm::mat4& value);
 	public:
-		Material();
+		const GLuint program;
+
+		Material(std::shared_ptr<Shader> shader);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3);
+
 		~Material();
 
-		GLuint GetProgram();
-		void UseProgram();
+		void UseProgram() const;
+		static void UnuseProgram();
 
-		virtual void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj, const glm::mat4& mvp) = 0;
+		virtual void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const = 0;
 	};
 
-	class UnlitMaterial : public Material
+	class AmbientMaterial : public Material
 	{
-	protected:
-		GLint mvpLocation;
-		GLint colorLocation;
 	public:
-		UnlitMaterial(std::shared_ptr<Shader> vertexSource, std::shared_ptr<Shader> fragmentSource);
-		UnlitMaterial(const std::string& vertexSource, const std::string& fragmentSource);
+		const GLint mvp;
+		const GLint color;
 
-		GLint GetMVPLocation();
-		void SetMVP(const glm::mat4& value);
+		AmbientMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
 
-		GLint GetColorLocation();
-		void SetColor(const glm::vec4& value);
+		void SetMVP(const glm::mat4& value) const;
+		void SetColor(const glm::vec4& value) const;
 
-		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj, const glm::mat4& mvp) override;
+		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const override;
+	};
+
+	class DiffuseMaterial : public Material
+	{
+	public:
+		const GLint mvp;
+		const GLint normal;
+		const GLint color;
+		const GLint ambientColor;
+		const GLint lightColor;
+		const GLint lightDirection;
+
+		DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+
+		void SetMVP(const glm::mat4& value) const;
+		void SetNormal(const glm::mat3& value) const;
+		void SetColor(const glm::vec4& value) const;
+		void SetAmbientColor(const glm::vec4& value) const;
+		void SetLightColor(const glm::vec4& value) const;
+		void SetLightDirection(const glm::vec3& value) const;
+
+		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const override;
 	};
 
 	class Buffer
@@ -168,29 +192,49 @@ namespace Injector
 			DynamicCopy = GL_DYNAMIC_COPY,
 		};
 	protected:
-		GLuint buffer;
-		Type type;
 		Usage usage;
 		GLsizeiptr size;
+
+		static GLuint GenerateBuffer();
+		static void DeleteBuffer(GLuint buffer);
 	public:
+		const GLuint buffer;
+		const Type type;
+
 		Buffer(Type type, Usage usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
 		~Buffer();
 
-		GLuint GetBuffer();
-		Type GetType();
 		Usage GetUsage();
 		GLsizeiptr GetSize();
 
-		void BindBuffer();
+		void BindBuffer() const;
+		void UnbindBuffer() const;
 
 		void SetBufferData(GLsizeiptr size = 0, const GLvoid* data = nullptr);
+		void Buffer::SetBufferData(Usage usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
+
 		void SetBufferSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data);
 	};
 
 	class VertexArray
 	{
+	protected:
+		static GLuint GenerateVertexArray();
+		static void DeleteVertexArray(GLuint vertexArray);
 	public:
-		enum class AttribType : GLenum
+		const GLuint vertexArray;
+
+		VertexArray();
+		~VertexArray();
+
+		void BindVertexArray() const;
+		static void UnbindVertexArray();
+	};
+
+	class VertexAttribute
+	{
+	public:
+		enum class Type : GLenum
 		{
 			Byte = GL_BYTE,
 			UnsignedByte = GL_UNSIGNED_BYTE,
@@ -206,42 +250,42 @@ namespace Injector
 			UnsignedInt_2_10_10_10_Rev = GL_UNSIGNED_INT_2_10_10_10_REV,
 			UnsignedInt_10f_11f_11f_Rev = GL_UNSIGNED_INT_10F_11F_11F_REV, // GL 4.4
 		};
-		enum class AttribSize : GLint
+		enum class Size : GLint
 		{
 			One = 1,
 			Two = 2,
 			Three = 3,
 			Four = 4,
 		};
-	protected:
-		GLuint vertexArray;
 
-		static void EnableVertexArrayAttrib(GLuint index);
-		static void DisableVertexArrayAttrib(GLuint index);
+		const GLuint index;
+		const Size size;
+		const Type type;
+		const bool normalized;
+		const GLsizei stride;
+		const GLintptr offset;
 
-		static void SetVertexArrayAttribPointer(GLuint index, AttribSize size = AttribSize::Four, AttribType type = AttribType::Float , bool normalized = false, GLsizei stride = 0, const GLvoid* pointer = 0);
-	public:
-		VertexArray();
-		~VertexArray();
+		VertexAttribute(GLuint index, Size size = Size::Four, Type type = Type::Float, bool normalized = false, GLsizei stride = 0, GLintptr offset = 0);
 
-		GLuint GetVertexArray();
-		void BindVertexArray();
+		void Enable() const;
+		void Disable() const;
+		void SetPointer() const;
 	};
 
 	class Primitive
 	{
 	public:
-		static const GLfloat TriangleVertices[9];
-		static const GLfloat TriangleNormals[9];
-		static const GLbyte TriangleIndices[3];
-		static const size_t TriangleVertexSize;
-		static const size_t TriangleIndexSize;
+		static const std::vector<GLfloat> TriangleVertices;
+		static const std::vector<GLfloat> TriangleNormals;
+		static const std::vector<GLbyte> TriangleIndices;
 
-		static const GLfloat QuadVertices[12];
-		static const GLfloat QuadNormals[12];
-		static const GLbyte QuadIndices[6];
-		static const size_t QuadVertexSize;
-		static const size_t QuadIndexSize;
+		static const std::vector<GLfloat> SquareVertices;
+		static const std::vector<GLfloat> SquareNormals;
+		static const std::vector<GLbyte> SquareIndices;
+
+		static const std::vector<GLfloat> CubeVertices;
+		static const std::vector<GLfloat> CubeNormals;
+		static const std::vector<GLbyte> CubeIndices;
 	};
 
 	class Mesh : public VertexArray
@@ -268,31 +312,45 @@ namespace Injector
 			UnsignedShort = GL_UNSIGNED_SHORT,
 			UnsignedInt = GL_UNSIGNED_INT,
 		};
-	protected:
-		GLsizei indexCount;
 
-		std::shared_ptr<Buffer> vertexBuffer;
-		std::shared_ptr<Buffer> indexBuffer;
-	public:
+		const std::shared_ptr<Buffer> vertexBuffer;
+		const std::shared_ptr<Buffer> indexBuffer;
+
 		DrawMode drawMode;
 		IndexType indexType;
+		GLsizei indexCount;
 
-		Mesh(DrawMode drawMode, IndexType indexType, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer);
-
-		std::shared_ptr<Buffer> GetVertexBuffer();
-		std::shared_ptr<Buffer> GetIndexBuffer();
+		Mesh(DrawMode drawMode, IndexType indexType, GLsizei indexCount, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer, const std::vector<VertexAttribute>& vertexAttributes);
 
 		void DrawElements();
 		virtual void OnRender();
+
+		template<class TVertex, class TIndex>
+		static std::shared_ptr<Mesh> Create(DrawMode drawMode, IndexType indexType, Buffer::Usage usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
+
+		static std::shared_ptr<Mesh> CreateTriangleV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateSquareV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateCubeV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+
+		static std::shared_ptr<Mesh> CreateTriangleVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateSquareVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateCubeVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
 	};
 
-	class VertMesh : public Mesh
+	class Image
 	{
+	protected:
+		int width;
+		int height;
+		int channels;
+		unsigned char* data;
 	public:
-		VertMesh(DrawMode drawMode, IndexType indexType, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer);
+		Image(const std::string& filePath, int targetChannels = 0);
+		~Image();
 
-		static std::shared_ptr<VertMesh> CreateTriangle(DrawMode drawMode = DrawMode::Triangles);
-		static std::shared_ptr<VertMesh> CreateQuad(DrawMode drawMode = DrawMode::Triangles);
+		// TODO: add getters
+
+		GLFWimage GetGLFW();
 	};
 
 	class Renderer : public Entity, public Transform
@@ -303,7 +361,7 @@ namespace Injector
 
 		Renderer(std::shared_ptr<Material> material, std::shared_ptr<Mesh> mesh);
 
-		virtual void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj, const glm::mat4& mvp);
+		virtual void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
 	};
 
 	class Camera : public Entity, public Transform
@@ -315,7 +373,7 @@ namespace Injector
 		bool isProjMatrixChaged;
 		bool isViewProjMatrixChaged;
 
-		std::set<std::shared_ptr<Renderer>> renderers;
+		std::set<std::shared_ptr<Renderer>> renderers; // TODO: try make const
 	public:
 		Camera();
 
@@ -355,13 +413,19 @@ namespace Injector
 		static double lastTime;
 		static double deltaTime;
 
+		static bool cullFace;
+		static bool depthTest;
+
 		static GLFWwindow* mainWindow;
 		static std::set<std::shared_ptr<Entity>> entities;
 
-		static std::shared_ptr<UnlitMaterial> unlitMaterial;
+		static std::shared_ptr<AmbientMaterial> ambientMaterial;
+		static std::shared_ptr<DiffuseMaterial> diffuseMaterial;
 
-		static std::shared_ptr<VertMesh> vertMeshTriangle;
-		static std::shared_ptr<VertMesh> vertMeshQuad;
+		static std::shared_ptr<Mesh> triangleMeshV;
+		static std::shared_ptr<Mesh> squareMeshV;
+		static std::shared_ptr<Mesh> cubeMeshV;
+		static std::shared_ptr<Mesh> cubeMeshVN;
 
 		static void ErrorCallback(int error, const char* description);
 		static void WindowCloseCallback(GLFWwindow* window);
@@ -379,18 +443,27 @@ namespace Injector
 		static void Terminate();
 		static void Start();
 
-		static std::string ReadFromFile(const std::string& filePath);
+		static std::string ReadTextFromFile(const std::string& filePath);
 
 		static double GetTime();
 		static double GetLastTime();
 		static double GetDeltaTime();
 
+		static bool GetCullFace();
+		static void SetCullFace(bool value);
+
+		static bool GetDepthTest();
+		static void SetDepthTest(bool value);
+
 		static void AddEntity(std::shared_ptr<Entity> entity);
 		static void RemoveEntity(std::shared_ptr<Entity> entity);
 
-		static std::shared_ptr<UnlitMaterial> GetUnlitMaterial();
+		static std::shared_ptr<AmbientMaterial> GetAmbientMaterial();
+		static std::shared_ptr<DiffuseMaterial> GetDiffuseMaterial();
 
-		static std::shared_ptr<VertMesh> GetVertMeshTriangle();
-		static std::shared_ptr<VertMesh> GetVertMeshQuad();
+		static std::shared_ptr<Mesh> GetTriangleMeshV();
+		static std::shared_ptr<Mesh> GetSquareMeshV();
+		static std::shared_ptr<Mesh> GetCubeMeshV();
+		static std::shared_ptr<Mesh> GetCubeMeshVN();
 	};
 }

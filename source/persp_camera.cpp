@@ -12,10 +12,13 @@ namespace Injector
 
 	void PerspCamera::OnFramebufferSize(GLFWwindow* window, int width, int height)
 	{
-		aspectRatio = float(width) / float(height);
+		if (width > 0 && height > 0)
+		{
+			aspectRatio = float(width) / float(height);
 
-		SetProjMatrixChanged();
-		SetViewProjMatrixChanged();
+			SetProjMatrixChanged();
+			SetViewProjMatrixChanged();
+		}
 	}
 	glm::mat4 PerspCamera::GetProjMatrix()
 	{

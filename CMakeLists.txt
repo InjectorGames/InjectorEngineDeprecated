@@ -11,8 +11,14 @@ add_subdirectory(deps/glfw)
 add_subdirectory(deps/glm)
 
 set(INJECTOR_ENGINE_RESOURCE_FILES
-    shaders/unlit.frag
-    shaders/unlit.vert
+    shaders/ambient.frag
+    shaders/ambient.vert
+    shaders/diffuse.frag
+    shaders/diffuse.vert
+
+    images/logo_16.png
+    images/logo_32.png
+    images/logo_48.png
 PARENT_SCOPE)
 
 foreach(FILE ${INJECTOR_ENGINE_RESOURCE_FILES})
@@ -20,10 +26,13 @@ foreach(FILE ${INJECTOR_ENGINE_RESOURCE_FILES})
 endforeach(FILE)
 
 add_library(${PROJECT_NAME} STATIC
+    source/ambient_material.cpp
     source/buffer.cpp
     source/camera.cpp
+    source/diffuse_material.cpp
     source/engine.cpp
     source/entity.cpp
+    source/image.cpp
     source/material.cpp
     source/mesh.cpp
     source/persp_camera.cpp
@@ -31,15 +40,15 @@ add_library(${PROJECT_NAME} STATIC
     source/renderer.cpp
     source/shader.cpp
     source/transform.cpp
-    source/unlit_material.cpp
-    source/vert_mesh.cpp
     source/vertex_array.cpp
+    source/vertex_attribute.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/include
     ${GLAD_SOURCE_DIR}/include
     ${GLFW_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/deps/stb
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
