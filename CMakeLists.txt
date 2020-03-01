@@ -52,7 +52,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    glad
+    glad_debug
+    glad_release
     glfw
     glm::glm
 )

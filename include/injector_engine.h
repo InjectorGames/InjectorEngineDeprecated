@@ -7,7 +7,12 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <glad/glad.h>
+#ifndef NDEBUG
+#include <glad/glad_debug.h>
+#else
+#include <glad/glad_release.h>
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>

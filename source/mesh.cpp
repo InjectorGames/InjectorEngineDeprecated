@@ -65,7 +65,7 @@ namespace Injector
 		std::vector<VertexAttribute> vertexAttributes =
 		{
 			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
-			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
+			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, true, 0, 0),
 		};
 
 		return Create<GLfloat, GLbyte>(drawMode, IndexType::UnsignedByte, usage, Primitive::TriangleVertices, Primitive::TriangleIndices, vertexAttributes);
@@ -75,7 +75,7 @@ namespace Injector
 		std::vector<VertexAttribute> vertexAttributes =
 		{
 			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
-			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
+			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, true, 0, 0),
 		};
 
 		return Create<GLfloat, GLbyte>(drawMode, IndexType::UnsignedByte, usage, Primitive::SquareVertices, Primitive::SquareIndices, vertexAttributes);
@@ -85,7 +85,7 @@ namespace Injector
 		std::vector<VertexAttribute> vertexAttributes =
 		{
 			VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
-			VertexAttribute(1, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, Primitive::CubeVertices.size() * sizeof(GLfloat)),
+			VertexAttribute(1, VertexAttribute::Size::Three, VertexAttribute::Type::Float, true, 0, Primitive::CubeVertices.size() * sizeof(GLfloat)),
 		};
 
 		auto vertices(Primitive::CubeVertices);
