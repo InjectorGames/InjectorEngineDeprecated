@@ -8,10 +8,10 @@ namespace Injector
 		mesh = _mesh;
 	}
 
-	void Renderer::OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
+	void Renderer::OnRender(double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
 	{
 		// TEMPORARY
-		Rotate(glm::quat(glm::vec3(Engine::GetDeltaTime() / 2.0f, Engine::GetDeltaTime(), 0.0f)));
+		Rotate(glm::quat(glm::vec3(deltaTime / 2.0f, deltaTime, 0.0f)));
 		SetMatrixChanged();
 
 		if (material && mesh)

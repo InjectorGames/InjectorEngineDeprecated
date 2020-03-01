@@ -17,6 +17,24 @@ namespace Injector
 		stbi_image_free(data);
 	}
 
+	int Image::GetWidth()
+	{
+		return width;
+	}
+	int Image::GetHeight()
+	{
+		return height;
+	}
+	int Image::GetChannels()
+	{
+		return channels;
+	}
+
+	unsigned char* Image::GetData()
+	{
+		return data;
+	}
+
 	GLFWimage Image::GetGLFW()
 	{
 		auto image = GLFWimage();

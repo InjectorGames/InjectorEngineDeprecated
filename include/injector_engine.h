@@ -23,6 +23,21 @@
 
 namespace Injector
 {
+	static std::string ReadTextFromFile(const std::string& filePath)
+	{
+		std::ifstream ifs(filePath);
+
+		if (!ifs)
+			throw std::runtime_error("Failed to open shader file.");
+
+		ifs.seekg(0, std::ios::end);
+		size_t size = ifs.tellg();
+		std::string buffer(size, ' ');
+		ifs.seekg(0);
+		ifs.read(&buffer[0], size);
+		return buffer;
+	}
+
 	class Entity
 	{
 	public:
@@ -30,7 +45,7 @@ namespace Injector
 
 		Entity(std::string name = "UntitledEntity");
 
-		virtual void OnUpdate();
+		virtual void OnUpdate(double time, double deltaTime);
 		virtual void OnWindowClose(GLFWwindow* window);
 		virtual void OnWindowSize(GLFWwindow* window, int width, int height);
 		virtual void OnFramebufferSize(GLFWwindow* window, int width, int height);
@@ -73,10 +88,7 @@ namespace Injector
 			TessControl = GL_TESS_CONTROL_SHADER, // GL 4.0
 			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
 		};
-	protected:
-		static GLuint CreateShader(Type type);
-		static void DeleteShader(GLuint shader);
-	public:
+
 		const GLuint shader;
 		const Type type;
 
@@ -87,16 +99,12 @@ namespace Injector
 	class Material
 	{
 	protected:
-		static GLuint CreateProgram();
-		static void DeleteProgram(GLuint program);
+		void Attach(GLuint shader);
+		void Detach(GLuint shader);
 
-		static void AttachShader(GLuint program, GLuint shader);
-		static void DetachShader(GLuint program, GLuint shader);
+		void Link();
 
-		static void LinkProgram(GLuint program);
-
-		static GLuint GetUniformLocation(GLuint program, const std::string& name);
-		GLuint GetUniform(const std::string& name) const;
+		GLuint GetUniformLocation(const std::string& name) const;
 
 		static void SetUniform(GLint index, GLfloat value);
 		static void SetUniform(GLint index, const glm::vec2& value);
@@ -114,8 +122,8 @@ namespace Injector
 
 		~Material();
 
-		void UseProgram() const;
-		static void UnuseProgram();
+		void Use() const;
+		static void Release();
 
 		virtual void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const = 0;
 	};
@@ -156,6 +164,112 @@ namespace Injector
 		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const override;
 	};
 
+	class Texture
+	{
+	public:
+		enum class Type : GLenum
+		{
+			Texture1D = GL_TEXTURE_1D,
+			Texture2D = GL_TEXTURE_2D,
+			Texture3D = GL_TEXTURE_3D,
+			Array1D = GL_TEXTURE_1D_ARRAY,
+			Array2D = GL_TEXTURE_2D_ARRAY,
+			Rectangle = GL_TEXTURE_RECTANGLE,
+			CubeMap = GL_TEXTURE_CUBE_MAP,
+			CubeMapArray = GL_TEXTURE_CUBE_MAP_ARRAY,
+			Buffer = GL_TEXTURE_BUFFER,
+			Multisample2D = GL_TEXTURE_2D_MULTISAMPLE, // GL 3.2
+			MultisampleArray2D = GL_TEXTURE_2D_MULTISAMPLE_ARRAY, // GL 3.2
+		};
+	protected:
+		static GLuint Generate();
+	public:
+		const GLuint texture;
+		const Type type;
+
+		Texture(Type type);
+		~Texture();
+
+		void Bind() const;
+		void Unbind() const;
+	};
+
+	class Texture2D : public Texture
+	{
+	public:
+		enum class ImageType : GLenum
+		{
+			Texture2D = GL_TEXTURE_2D,
+			Proxy2D = GL_PROXY_TEXTURE_2D,
+			Array1D = GL_TEXTURE_1D_ARRAY,
+			ProxyArray1D = GL_PROXY_TEXTURE_1D_ARRAY,
+			Rectangle = GL_TEXTURE_RECTANGLE,
+			ProxyRectangle = GL_PROXY_TEXTURE_RECTANGLE,
+			CubeMapPositiveX = GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+			CubeMapNegativeX = GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+			CubeMapPositiveY = GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+			CubeMapNegativeY = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+			CubeMapPositiveZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+			CubeMapNegativeZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			ProxyCubeMap = GL_PROXY_TEXTURE_CUBE_MAP,
+		};
+		enum class InternalFormatType : GLenum
+		{
+			DepthComponent = GL_DEPTH_COMPONENT,
+			DepthStencil = GL_DEPTH_STENCIL,
+			Red = GL_RED,
+			RG = GL_RG,
+			RGB = GL_RGB,
+			RGBA = GL_RGBA,
+
+			// TODO: add other sized and compressed formats
+			// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
+		};
+		enum class FormatType : GLenum
+		{
+			Red = GL_RED,
+			RG = GL_RG,
+			RGB = GL_RGB,
+			BGR = GL_BGR,
+			RGBA = GL_RGBA,
+			BGRA = GL_BGRA,
+			RedInteger = GL_RED_INTEGER,
+			RGInteger = GL_RG_INTEGER,
+			RGBInteger = GL_RGB_INTEGER,
+			BGRInteger = GL_BGR_INTEGER,
+			RGBAInteger = GL_RGBA_INTEGER,
+			BGRAInteger = GL_BGRA_INTEGER,
+			StencilIndex = GL_STENCIL_INDEX,
+			DepthComponent = GL_DEPTH_COMPONENT,
+			DepthStencil = GL_DEPTH_STENCIL,
+		};
+		enum class PixelType : GLenum
+		{
+			Unyte = GL_UNSIGNED_BYTE,
+			Byte = GL_BYTE,
+			Ushort = GL_UNSIGNED_SHORT,
+			Short = GL_SHORT,
+			Uint = GL_UNSIGNED_INT,
+			Int = GL_INT,
+			Hfloat = GL_HALF_FLOAT,
+			Float = GL_FLOAT,
+			Ubyte_3_3_2 = GL_UNSIGNED_BYTE_3_3_2,
+			Ubyte_2_3_3_Rev = GL_UNSIGNED_BYTE_2_3_3_REV,
+			Ushort_5_6_5 = GL_UNSIGNED_SHORT_5_6_5,
+			Ushort_5_6_5_Rev = GL_UNSIGNED_SHORT_5_6_5_REV,
+			Ushort_4_4_4_4 = GL_UNSIGNED_SHORT_4_4_4_4,
+			Ushort_4_4_4_4_Rev = GL_UNSIGNED_SHORT_4_4_4_4_REV,
+			Ushort_5_5_5_1 = GL_UNSIGNED_SHORT_5_5_5_1,
+			Ushort_1_5_5_5_Rev = GL_UNSIGNED_SHORT_1_5_5_5_REV,
+			Uint_8_8_8_8 = GL_UNSIGNED_INT_8_8_8_8,
+			Uint_8_8_8_8_Rev = GL_UNSIGNED_INT_8_8_8_8_REV,
+			Uint_10_10_10_2 = GL_UNSIGNED_INT_10_10_10_2,
+			Uint_2_10_10_10_Rev = GL_UNSIGNED_INT_2_10_10_10_REV,
+		};
+
+		Texture2D(ImageType image, GLint level, InternalFormatType internalFormat, GLsizei width, GLsizei height, FormatType format, PixelType pixel, const GLvoid* data, bool generateMipmap);
+	};
+
 	class Buffer
 	{
 	public:
@@ -176,7 +290,7 @@ namespace Injector
 			TransformFeedback = GL_TRANSFORM_FEEDBACK_BUFFER, // GL 2.0
 			Uniform = GL_UNIFORM_BUFFER, // GL 3.1
 		};
-		enum class Usage : GLenum
+		enum class UsageType : GLenum
 		{
 			// STREAM: The data store contents will be modified once and used at most a few times.
 			// STATIC: The data store contents will be modified once and used many times.
@@ -197,43 +311,41 @@ namespace Injector
 			DynamicCopy = GL_DYNAMIC_COPY,
 		};
 	protected:
-		Usage usage;
+		UsageType usage;
 		GLsizeiptr size;
 
-		static GLuint GenerateBuffer();
-		static void DeleteBuffer(GLuint buffer);
+		static GLuint Generate();
 	public:
 		const GLuint buffer;
 		const Type type;
 
-		Buffer(Type type, Usage usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
+		Buffer(Type type, UsageType usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
 		~Buffer();
 
-		Usage GetUsage();
+		UsageType GetUsage();
 		GLsizeiptr GetSize();
 
-		void BindBuffer() const;
-		void UnbindBuffer() const;
+		void Bind() const;
+		void Unbind() const;
 
-		void SetBufferData(GLsizeiptr size = 0, const GLvoid* data = nullptr);
-		void Buffer::SetBufferData(Usage usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
+		void SetData(GLsizeiptr size = 0, const GLvoid* data = nullptr);
+		void SetData(UsageType usage, GLsizeiptr size = 0, const GLvoid* data = nullptr);
 
-		void SetBufferSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data);
+		void SetSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data);
 	};
 
 	class VertexArray
 	{
 	protected:
-		static GLuint GenerateVertexArray();
-		static void DeleteVertexArray(GLuint vertexArray);
+		static GLuint Generate();
 	public:
 		const GLuint vertexArray;
 
 		VertexArray();
 		~VertexArray();
 
-		void BindVertexArray() const;
-		static void UnbindVertexArray();
+		void Bind() const;
+		static void Unbind();
 	};
 
 	class VertexAttribute
@@ -242,18 +354,18 @@ namespace Injector
 		enum class Type : GLenum
 		{
 			Byte = GL_BYTE,
-			UnsignedByte = GL_UNSIGNED_BYTE,
+			Ubyte = GL_UNSIGNED_BYTE,
 			Short = GL_SHORT,
-			UnsignedShort = GL_UNSIGNED_SHORT,
+			Ushort = GL_UNSIGNED_SHORT,
 			Int = GL_INT,
-			UnsignedInt = GL_UNSIGNED_INT,
-			HalfFloat = GL_HALF_FLOAT,
+			Uint = GL_UNSIGNED_INT,
+			Hfloat = GL_HALF_FLOAT,
 			Float = GL_FLOAT,
 			Double = GL_DOUBLE,
 			Fixed = GL_FIXED,
 			Int_2_10_10_10_Rev = GL_INT_2_10_10_10_REV,
-			UnsignedInt_2_10_10_10_Rev = GL_UNSIGNED_INT_2_10_10_10_REV,
-			UnsignedInt_10f_11f_11f_Rev = GL_UNSIGNED_INT_10F_11F_11F_REV, // GL 4.4
+			Uint_2_10_10_10_Rev = GL_UNSIGNED_INT_2_10_10_10_REV,
+			Uint_10f_11f_11f_Rev = GL_UNSIGNED_INT_10F_11F_11F_REV, // GL 4.4
 		};
 		enum class Size : GLint
 		{
@@ -331,15 +443,15 @@ namespace Injector
 		virtual void OnRender();
 
 		template<class TVertex, class TIndex>
-		static std::shared_ptr<Mesh> Create(DrawMode drawMode, IndexType indexType, Buffer::Usage usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
+		static std::shared_ptr<Mesh> Create(DrawMode drawMode, IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
 
-		static std::shared_ptr<Mesh> CreateTriangleV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
-		static std::shared_ptr<Mesh> CreateSquareV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
-		static std::shared_ptr<Mesh> CreateCubeV(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateTriangleV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
+		static std::shared_ptr<Mesh> CreateSquareV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
+		static std::shared_ptr<Mesh> CreateCubeV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
 
-		static std::shared_ptr<Mesh> CreateTriangleVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
-		static std::shared_ptr<Mesh> CreateSquareVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
-		static std::shared_ptr<Mesh> CreateCubeVN(DrawMode drawMode = DrawMode::Triangles, Buffer::Usage usage = Buffer::Usage::StaticDraw);
+		static std::shared_ptr<Mesh> CreateTriangleVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
+		static std::shared_ptr<Mesh> CreateSquareVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
+		static std::shared_ptr<Mesh> CreateCubeVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
 	};
 
 	class Image
@@ -348,14 +460,24 @@ namespace Injector
 		int width;
 		int height;
 		int channels;
+
 		unsigned char* data;
 	public:
 		Image(const std::string& filePath, int targetChannels = 0);
 		~Image();
 
-		// TODO: add getters
+		int GetWidth();
+		int GetHeight();
+		int GetChannels();
+
+		unsigned char* GetData();
 
 		GLFWimage GetGLFW();
+	};
+
+	class Font
+	{
+
 	};
 
 	class Renderer : public Entity, public Transform
@@ -366,7 +488,7 @@ namespace Injector
 
 		Renderer(std::shared_ptr<Material> material, std::shared_ptr<Mesh> mesh);
 
-		virtual void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
+		virtual void OnRender(double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
 	};
 
 	class Camera : public Entity, public Transform
@@ -378,7 +500,7 @@ namespace Injector
 		bool isProjMatrixChaged;
 		bool isViewProjMatrixChaged;
 
-		std::set<std::shared_ptr<Renderer>> renderers; // TODO: try make const
+		std::set<std::shared_ptr<Renderer>> renderers;
 	public:
 		Camera();
 
@@ -389,13 +511,13 @@ namespace Injector
 		virtual glm::mat4 GetProjMatrix() = 0;
 		virtual glm::mat4 GetViewProjMatrix();
 
-		void OnUpdate() override;
+		void OnUpdate(double time, double deltaTime) override;
 
 		void AddRenderer(std::shared_ptr<Renderer> renderer);
 		void RemoveRenderer(std::shared_ptr<Renderer> renderer);
 	};
 
-	class PerspCamera : public Camera
+	class PerspectiveCamera : public Camera
 	{
 	public:
 		float fieldOfView;
@@ -403,25 +525,75 @@ namespace Injector
 		float nearClipPlane;
 		float farClipPlane;
 
-		PerspCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
+		PerspectiveCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
 
 		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
 		glm::mat4 GetProjMatrix() override;
 	};
 
-	class Engine
+	class Window
 	{
 	protected:
-		static bool isInitialized;
+		bool cullFaceFlag;
+		bool depthTestFlag;
+		bool stencilTestFlag;
 
-		static double time;
+		virtual GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) const;
+	public:
+		GLFWwindow* const window;
+
+		Window(int width = 800, int height = 600, const std::string& title = "Untitled Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
+		~Window();
+
+		void SetWindowIcon(const std::vector<GLFWimage>& icons) const;
+
+		void MakeContextCurrent() const;
+		static void DetachContextCurrent();
+
+		bool GetCullFaceFlag();
+		bool GetDepthTestFlag();
+		bool GetStencilTestFlag();
+
+		virtual void SetCullFaceFlag(bool value) = 0;
+		virtual void SetDepthTestFlag(bool value) = 0;
+		virtual void SetStencilTestFlag(bool value) = 0;
+
+		virtual void ClearBuffers() = 0;
+	};
+
+	class OpenGLWindow : public Window
+	{
+	protected:
+		GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) const override;
+	public:
+		OpenGLWindow(int width = 800, int height = 600, const std::string& title = "OpenGL Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
+
+		void SetCullFaceFlag(bool value) override;
+		void SetDepthTestFlag(bool value) override;
+		void SetStencilTestFlag(bool value) override;
+
+		void ClearBuffers() override;
+	};
+
+	class VulkanWindow : public Window
+	{
+		// TODO: 
+	};
+
+	class Engine
+	{
+	public:
+		enum class WindowType
+		{
+			Unknown,
+			OpenGL,
+			OpenES,
+			Vulkan,
+		};
+	protected:
 		static double lastTime;
-		static double deltaTime;
 
-		static bool cullFace;
-		static bool depthTest;
-
-		static GLFWwindow* mainWindow;
+		static std::shared_ptr<Window> window;
 		static std::set<std::shared_ptr<Entity>> entities;
 
 		static std::shared_ptr<AmbientMaterial> ambientMaterial;
@@ -442,27 +614,9 @@ namespace Injector
 		static void WindowMaximizeCallback(GLFWwindow* window, int maximized);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 		static void WindowRefreshCallback(GLFWwindow* window);
+
+		static void Clear();
 	public:
-		static bool IsInitialized();
-		static void Initialize();
-		static void Terminate();
-		static void Start();
-
-		static std::string ReadTextFromFile(const std::string& filePath);
-
-		static double GetTime();
-		static double GetLastTime();
-		static double GetDeltaTime();
-
-		static bool GetCullFace();
-		static void SetCullFace(bool value);
-
-		static bool GetDepthTest();
-		static void SetDepthTest(bool value);
-
-		static void AddEntity(std::shared_ptr<Entity> entity);
-		static void RemoveEntity(std::shared_ptr<Entity> entity);
-
 		static std::shared_ptr<AmbientMaterial> GetAmbientMaterial();
 		static std::shared_ptr<DiffuseMaterial> GetDiffuseMaterial();
 
@@ -470,5 +624,37 @@ namespace Injector
 		static std::shared_ptr<Mesh> GetSquareMeshV();
 		static std::shared_ptr<Mesh> GetCubeMeshV();
 		static std::shared_ptr<Mesh> GetCubeMeshVN();
+
+		static void Initialize(WindowType windowType = WindowType::OpenGL);
+		static void Terminate();
+
+		static std::shared_ptr<Window> GetWindow();
+		static void SwitchWindow(WindowType windowType);
+
+		static void AddEntity(std::shared_ptr<Entity> entity);
+		static void RemoveEntity(std::shared_ptr<Entity> entity);
+
+		static void Update();
 	};
+
+	static void InitDemo()
+	{
+		auto window = Engine::GetWindow();
+		window->SetCullFaceFlag(true);
+
+		auto camera = std::make_shared<PerspectiveCamera>();
+		Engine::AddEntity(camera);
+
+		auto renderer = std::make_shared<Renderer>(Engine::GetDiffuseMaterial(), Engine::GetCubeMeshVN());
+		camera->AddRenderer(renderer);
+	}
+	static void StartDemo()
+	{
+		Engine::Initialize();
+
+		InitDemo();
+
+		Engine::Update();
+		Engine::Terminate();
+	}
 }

@@ -41,14 +41,14 @@ namespace Injector
 		return viewProjMatrix;
 	}
 
-	void Camera::OnUpdate()
+	void Camera::OnUpdate(double time, double deltaTime)
 	{
 		auto view = GetMatrix();
 		auto proj = GetProjMatrix();
 		auto viewProj = proj * view;
 
 		for (const auto& renderer : renderers)
-			renderer->OnRender(view, proj, viewProj);
+			renderer->OnRender(time, deltaTime, view, proj, viewProj);
 	}
 
 	void Camera::AddRenderer(std::shared_ptr<Renderer> renderer)

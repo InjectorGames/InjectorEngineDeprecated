@@ -2,34 +2,25 @@
 
 namespace Injector
 {
-	GLuint Material::CreateProgram()
-	{
-		return glCreateProgram();
-	}
-	void Material::DeleteProgram(GLuint program)
-	{
-		glDeleteProgram(program);
-	}
-
-	void Material::AttachShader(GLuint program, GLuint shader)
+	void Material::Attach(GLuint shader)
 	{
 		glAttachShader(program, shader);
 	}
-	void Material::DetachShader(GLuint program, GLuint shader)
+	void Material::Detach(GLuint shader)
 	{
 		glDetachShader(program, shader);
 	}
 
-	void Material::LinkProgram(GLuint program)
+	void Material::Link()
 	{
 		glLinkProgram(program);
 
-		GLint success = 0;
+		auto success = (GLint)0;
 		glGetProgramiv(program, GL_LINK_STATUS, &success);
 
 		if (success == GL_FALSE)
 		{
-			GLint maxLength = 0;
+			auto maxLength = (GLint)0;
 			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
 
 			std::string buffer(maxLength, ' ');
@@ -39,25 +30,21 @@ namespace Injector
 		}
 	}
 
-	GLuint Material::GetUniformLocation(GLuint program, const std::string& name)
+	GLuint Material::GetUniformLocation(const std::string& name) const
 	{
 		auto location = glGetUniformLocation(program, name.c_str());
 
 		if (location == -1)
-			throw std::runtime_error("Failed to get material uniform location");
+			throw std::runtime_error("Failed to get uniform location");
 
 		return location;
-	}
-	GLuint Material::GetUniform(const std::string& name) const
-	{
-		return GetUniformLocation(program, name);
 	}
 
 	void Material::SetUniform(GLint index, GLfloat value)
 	{
 		glUniform1f(index, value);
 	}
-	void  Material::SetUniform(GLint index, const glm::vec2& value)
+	void Material::SetUniform(GLint index, const glm::vec2& value)
 	{
 		glUniform2fv(index, GL_ONE, value_ptr(value));
 	}
@@ -82,58 +69,58 @@ namespace Injector
 		glUniformMatrix4fv(index, GL_ONE, GL_FALSE, value_ptr(value));
 	}
 
-	Material::Material(std::shared_ptr<Shader> shader) : program(CreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader) : program(glCreateProgram())
 	{
 		auto shaderName = shader->shader;
-		AttachShader(program, shaderName);
-		LinkProgram(program);
-		DetachShader(program, shaderName);
-		UseProgram();
+		Attach(shaderName);
+		Link();
+		Detach(shaderName);
+		Use();
 	}
-	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2) : program(CreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2) : program(glCreateProgram())
 	{
 		auto shaderName1 = shader1->shader;
 		auto shaderName2 = shader2->shader;
 
-		AttachShader(program, shaderName1);
-		AttachShader(program, shaderName2);
+		Attach(shaderName1);
+		Attach(shaderName2);
 
-		LinkProgram(program);
+		Link();
 
-		DetachShader(program, shaderName1);
-		DetachShader(program, shaderName2);
+		Detach(shaderName1);
+		Detach(shaderName2);
 
-		UseProgram();
+		Use();
 	}
-	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3) : program(CreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3) : program(glCreateProgram())
 	{
 		auto shaderName1 = shader1->shader;
 		auto shaderName2 = shader2->shader;
 		auto shaderName3 = shader3->shader;
 
-		AttachShader(program, shaderName1);
-		AttachShader(program, shaderName2);
-		AttachShader(program, shaderName3);
+		Attach(shaderName1);
+		Attach(shaderName2);
+		Attach(shaderName3);
 
-		LinkProgram(program);
+		Link();
 
-		DetachShader(program, shaderName1);
-		DetachShader(program, shaderName2);
-		DetachShader(program, shaderName3);
+		Detach(shaderName1);
+		Detach(shaderName2);
+		Detach(shaderName3);
 
-		UseProgram();
+		Use();
 	}
 
 	Material::~Material()
 	{
-		DeleteProgram(program);
+		glDeleteProgram(program);
 	}
 
-	void Material::UseProgram() const
+	void Material::Use() const
 	{
 		glUseProgram(program);
 	}
-	void Material::UnuseProgram()
+	void Material::Release()
 	{
 		glUseProgram(GL_ZERO);
 	}

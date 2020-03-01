@@ -2,7 +2,7 @@
 
 namespace Injector
 {
-	AmbientMaterial::AmbientMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader) : Material(vertexShader, fragmentShader), mvp(GetUniform("u_MVP")), color(GetUniform("u_Color"))
+	AmbientMaterial::AmbientMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader) : Material(vertexShader, fragmentShader), mvp(GetUniformLocation("u_MVP")), color(GetUniformLocation("u_Color"))
 	{
 		SetColor(glm::vec4(1.0f));
 	}
@@ -18,7 +18,7 @@ namespace Injector
 
 	void AmbientMaterial::OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const
 	{
-		UseProgram();
+		Use();
 		SetMVP(viewProj * model);
 	}
 }

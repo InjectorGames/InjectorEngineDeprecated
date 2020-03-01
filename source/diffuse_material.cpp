@@ -2,7 +2,7 @@
 
 namespace Injector
 {
-	DiffuseMaterial::DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader) : Material(vertexShader, fragmentShader), mvp(GetUniform("u_MVP")), normal(GetUniform("u_Normal")), color(GetUniform("u_Color")), ambientColor(GetUniform("u_AmbientColor")), lightColor(GetUniform("u_LightColor")), lightDirection(GetUniform("u_LightDirection"))
+	DiffuseMaterial::DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader) : Material(vertexShader, fragmentShader), mvp(GetUniformLocation("u_MVP")), normal(GetUniformLocation("u_Normal")), color(GetUniformLocation("u_Color")), ambientColor(GetUniformLocation("u_AmbientColor")), lightColor(GetUniformLocation("u_LightColor")), lightDirection(GetUniformLocation("u_LightDirection"))
 	{
 		SetColor(glm::vec4(1.0f));
 		SetAmbientColor(glm::vec4(0.25f));
@@ -37,7 +37,9 @@ namespace Injector
 
 	void DiffuseMaterial::OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const
 	{
-		UseProgram();
+		Engine::GetWindow()->SetDepthTestFlag(true);
+
+		Use();
 		SetMVP(viewProj * model);
 		SetNormal(glm::transpose(glm::inverse(view * model)));
 	}

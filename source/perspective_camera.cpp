@@ -2,7 +2,7 @@
 
 namespace Injector
 {
-	PerspCamera::PerspCamera(float _fieldOfView, float _aspectRatio, float _nearClipPlane, float _farClipPlane)
+	PerspectiveCamera::PerspectiveCamera(float _fieldOfView, float _aspectRatio, float _nearClipPlane, float _farClipPlane)
 	{
 		fieldOfView = _fieldOfView;
 		aspectRatio = _aspectRatio;
@@ -10,7 +10,7 @@ namespace Injector
 		farClipPlane = _farClipPlane;
 	}
 
-	void PerspCamera::OnFramebufferSize(GLFWwindow* window, int width, int height)
+	void PerspectiveCamera::OnFramebufferSize(GLFWwindow* window, int width, int height)
 	{
 		if (width > 0 && height > 0)
 		{
@@ -20,7 +20,7 @@ namespace Injector
 			SetViewProjMatrixChanged();
 		}
 	}
-	glm::mat4 PerspCamera::GetProjMatrix()
+	glm::mat4 PerspectiveCamera::GetProjMatrix()
 	{
 		if (isProjMatrixChaged)
 		{

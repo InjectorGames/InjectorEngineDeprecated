@@ -11,6 +11,15 @@ add_subdirectory(deps/glfw)
 add_subdirectory(deps/glm)
 
 set(INJECTOR_ENGINE_RESOURCE_FILES
+    fonts/jetbrains_mono/bold.ttf
+    fonts/jetbrains_mono/bold_italic.ttf
+    fonts/jetbrains_mono/extra_bold.ttf
+    fonts/jetbrains_mono/extra_bold_italic.ttf
+    fonts/jetbrains_mono/italic.ttf
+    fonts/jetbrains_mono/medium.ttf
+    fonts/jetbrains_mono/medium_italic.ttf
+    fonts/jetbrains_mono/regular.ttf
+
     shaders/ambient.frag
     shaders/ambient.vert
     shaders/diffuse.frag
@@ -32,16 +41,21 @@ add_library(${PROJECT_NAME} STATIC
     source/diffuse_material.cpp
     source/engine.cpp
     source/entity.cpp
+    source/font.cpp
     source/image.cpp
     source/material.cpp
     source/mesh.cpp
-    source/persp_camera.cpp
+    source/opengl_window.cpp
+    source/perspective_camera.cpp
     source/primitive.cpp
     source/renderer.cpp
     source/shader.cpp
+    source/texture.cpp
+    source/texture_2d.cpp
     source/transform.cpp
     source/vertex_array.cpp
     source/vertex_attribute.cpp
+    source/window.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
