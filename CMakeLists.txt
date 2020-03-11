@@ -39,13 +39,16 @@ foreach(FILE ${INJECTOR_ENGINE_RESOURCE_FILES})
 endforeach(FILE)
 
 add_library(${PROJECT_NAME} STATIC
+    source/attribute.cpp
     source/batch.cpp
     source/buffer.cpp
     source/camera.cpp
     source/color_material.cpp
     source/color_tex_material.cpp
-    source/demo_controller.cpp
+    source/demo.cpp
     source/diffuse_material.cpp
+    source/drawer.cpp
+    source/editor.cpp
     source/editor_material.cpp
     source/editor_panel.cpp
     source/engine.cpp
@@ -56,14 +59,13 @@ add_library(${PROJECT_NAME} STATIC
     source/material.cpp
     source/mesh.cpp
     source/opengl_window.cpp
+    source/orthographic_camera.cpp
     source/perspective_camera.cpp
     source/primitive.cpp
-    source/renderer.cpp
     source/shader.cpp
     source/texture.cpp
     source/texture_2d.cpp
     source/transform.cpp
-    source/vertex_attribute.cpp
     source/window.cpp
 )
 

@@ -2,16 +2,11 @@
 
 namespace Injector
 {
-	EditorPanel::EditorPanel(bool isRenderable) : Renderer(Engine::GetEditorMaterial(), Engine::GetSquareMeshV(), isRenderable)
+	EditorPanel::EditorPanel(bool isVisible) : Drawer(Engine::GetSquareMeshV(), isVisible)
 	{
 		aspectRatio = 4.0f / 3.0f;
 	}
 
-	void EditorPanel::OnFramebufferSize(GLFWwindow* window, int width, int height)
-	{
-		aspectRatio = float(width) / float(height);
-		isMatrixChaged = true;
-	}
 	glm::mat4 EditorPanel::GetMatrix()
 	{
 		if (isMatrixChaged)

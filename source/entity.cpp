@@ -7,7 +7,8 @@ namespace Injector
 		name = _name;
 	}
 
-	void Entity::OnUpdate(double time, double deltaTime) {}
+	void Entity::OnUpdate() {}
+	void Entity::OnRender() {}
 	void Entity::OnWindowClose(GLFWwindow* window) {}
 	void Entity::OnWindowSize(GLFWwindow* window, int width, int height) {}
 	void Entity::OnFramebufferSize(GLFWwindow* window, int width, int height) {}

@@ -2,7 +2,9 @@
 
 namespace Injector
 {
-	Shader::Shader(Type _type, const std::string& source, bool readFromFile) : shader(glCreateShader((GLenum)_type)), type(_type)
+	Shader::Shader(Type _type, const std::string& source, bool readFromFile) :
+		shader(glCreateShader((GLenum)_type)),
+		type(_type)
 	{
 		// TODO: get hight opengl version
 		std::string code("#version 330\n");

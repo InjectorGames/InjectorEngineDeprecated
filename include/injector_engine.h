@@ -59,7 +59,8 @@ namespace Injector
 
 		Entity(std::string name = "UntitledEntity");
 
-		virtual void OnUpdate(double time, double deltaTime);
+		virtual void OnUpdate();
+		virtual void OnRender();
 		virtual void OnWindowClose(GLFWwindow* window);
 		virtual void OnWindowSize(GLFWwindow* window, int width, int height);
 		virtual void OnFramebufferSize(GLFWwindow* window, int width, int height);
@@ -89,44 +90,6 @@ namespace Injector
 
 		void SetMatrixChanged();
 		virtual glm::mat4 GetMatrix();
-	};
-
-	class Camera : public Entity, public Transform
-	{
-	protected:
-		glm::mat4 projMatrix;
-		glm::mat4 viewProjMatrix;
-
-		bool isProjMatrixChaged;
-		bool isViewProjMatrixChaged;
-	public:
-		Camera();
-
-		void SetProjMatrixChanged();
-		void SetViewProjMatrixChanged();
-
-		virtual glm::mat4 GetProjMatrix();
-		virtual glm::mat4 GetViewProjMatrix();
-	};
-
-	class PerspectiveCamera : public Camera
-	{
-	public:
-		float fieldOfView;
-		float aspectRatio;
-		float nearClipPlane;
-		float farClipPlane;
-
-		PerspectiveCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
-
-		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
-		glm::mat4 GetProjMatrix() override;
-	};
-
-	class FreeLookCamera : public PerspectiveCamera
-	{
-	public:
-		void OnUpdate(double time, double deltaTime) override;
 	};
 
 	class Window
@@ -222,6 +185,47 @@ namespace Injector
 	class VulkanWindow : public Window
 	{
 		// TODO: 
+	};
+
+	class Primitive
+	{
+	public:
+		static const std::vector<GLfloat> SquareVertices;
+		static const std::vector<GLfloat> SquareNormals;
+		static const std::vector<GLfloat> SquareTexCoords;
+		static const std::vector<GLbyte> SquareIndices;
+
+		static const std::vector<GLfloat> CubeVertices;
+		static const std::vector<GLfloat> CubeNormals;
+		static const std::vector<GLbyte> CubeIndices;
+	};
+
+	class Image
+	{
+	protected:
+		int width;
+		int height;
+		int channels;
+
+		unsigned char* data;
+	public:
+		Image(const std::string& filePath, int targetChannels = 0);
+		~Image();
+
+		int GetWidth();
+		int GetHeight();
+		int GetChannels();
+
+		unsigned char* GetData();
+
+		GLFWimage GetGLFW();
+	};
+
+	class Font
+	{
+	public:
+		Font(const std::string& filePath, float pixelHeight);
+		~Font();
 	};
 
 	class Texture
@@ -332,122 +336,6 @@ namespace Injector
 		Texture2D(ImageType image, GLint level, InternalFormatType internalFormat, GLsizei width, GLsizei height, FormatType format, PixelType pixel, const GLvoid* data, bool generateMipmap);
 	};
 
-	class Shader
-	{
-	public:
-		enum class Type : GLenum
-		{
-			Vertex = GL_VERTEX_SHADER, // GL 2.0
-			Fragment = GL_FRAGMENT_SHADER, // GL 2.0
-			Geometry = GL_GEOMETRY_SHADER, // GL 3.2
-			Compute = GL_COMPUTE_SHADER, // GL 4.2
-			TessControl = GL_TESS_CONTROL_SHADER, // GL 4.0
-			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
-		};
-
-		const GLuint shader;
-		const Type type;
-
-		Shader(Type type, const std::string& source, bool readFromFile);
-		~Shader();
-	};
-
-	class Material
-	{
-	protected:
-
-
-		void Attach(GLuint shader) const;
-		void Detach(GLuint shader) const;
-
-		void Link() const;
-
-		GLuint GetUniformLocation(const std::string& name) const;
-
-		static void SetUniform(GLint index, GLint value);
-		static void SetUniform(GLint index, GLfloat value);
-		static void SetUniform(GLint index, const glm::vec2& value);
-		static void SetUniform(GLint index, const glm::vec3& value);
-		static void SetUniform(GLint index, const glm::vec4& value);
-		static void SetUniform(GLint index, const glm::mat2& value);
-		static void SetUniform(GLint index, const glm::mat3& value);
-		static void SetUniform(GLint index, const glm::mat4& value);
-	public:
-		const GLuint program;
-
-		Material(std::shared_ptr<Shader> shader);
-		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2);
-		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3);
-
-		~Material();
-
-		void Use() const;
-		static void Release();
-
-		virtual void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
-	};
-
-	class ColorMaterial : public Material
-	{
-	public:
-		const GLint mvp;
-		const GLint color;
-
-		ColorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
-
-		void SetMVP(const glm::mat4& value) const;
-		void SetColor(const glm::vec4& value) const;
-
-		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
-	};
-
-	class ColorTexMaterial : public ColorMaterial
-	{
-	public:
-		const GLint textureMap;
-		std::shared_ptr<Texture2D> texture;
-
-		ColorTexMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
-
-		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
-	};
-
-	class DiffuseMaterial : public Material
-	{
-	public:
-		const GLint mvp;
-		const GLint normal;
-		const GLint color;
-		const GLint ambientColor;
-		const GLint lightColor;
-		const GLint lightDirection;
-
-		DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
-
-		void SetMVP(const glm::mat4& value) const;
-		void SetNormal(const glm::mat3& value) const;
-		void SetColor(const glm::vec4& value) const;
-		void SetAmbientColor(const glm::vec4& value) const;
-		void SetLightColor(const glm::vec4& value) const;
-		void SetLightDirection(const glm::vec3& value) const;
-
-		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
-	};
-
-	class EditorMaterial : public Material
-	{
-	public:
-		const GLint model;
-		const GLint color;
-
-		EditorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
-
-		void SetModel(const glm::mat4& value) const;
-		void SetColor(const glm::vec4& value) const;
-
-		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
-	};
-
 	class Buffer
 	{
 	public:
@@ -526,7 +414,7 @@ namespace Injector
 		static void Unbind();
 	};
 
-	class VertexAttribute
+	class Attribute
 	{
 	public:
 		enum class Type : GLenum
@@ -560,24 +448,11 @@ namespace Injector
 		const GLsizei stride;
 		const GLintptr offset;
 
-		VertexAttribute(GLuint index, Size size = Size::Four, Type type = Type::Float, bool normalized = false, GLsizei stride = 0, GLintptr offset = 0);
+		Attribute(GLuint index, Size size = Size::Four, Type type = Type::Float, bool normalized = false, GLsizei stride = 0, GLintptr offset = 0);
 
 		void Enable() const;
 		void Disable() const;
 		void SetPointer() const;
-	};
-
-	class Primitive
-	{
-	public:
-		static const std::vector<GLfloat> SquareVertices;
-		static const std::vector<GLfloat> SquareNormals;
-		static const std::vector<GLfloat> SquareTexCoords;
-		static const std::vector<GLbyte> SquareIndices;
-
-		static const std::vector<GLfloat> CubeVertices;
-		static const std::vector<GLfloat> CubeNormals;
-		static const std::vector<GLbyte> CubeIndices;
 	};
 
 	class Mesh : public Batch
@@ -612,62 +487,236 @@ namespace Injector
 		IndexType indexType;
 		GLsizei indexCount;
 
-		Mesh(DrawMode drawMode, IndexType indexType, GLsizei indexCount, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer, const std::vector<VertexAttribute>& vertexAttributes);
+		Mesh(DrawMode drawMode, IndexType indexType, GLsizei indexCount, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer, const std::vector<Attribute>& attributes);
 
 		void DrawElements();
-		virtual void OnRender();
+		virtual void OnDraw();
 	};
 
-	class Image
+	class Drawer : public Transform
 	{
 	protected:
-		int width;
-		int height;
-		int channels;
-
-		unsigned char* data;
+		bool isVisible;
 	public:
-		Image(const std::string& filePath, int targetChannels = 0);
-		~Image();
-
-		int GetWidth();
-		int GetHeight();
-		int GetChannels();
-
-		unsigned char* GetData();
-
-		GLFWimage GetGLFW();
-	};
-
-	class Font
-	{
-	public:
-		Font(const std::string& filePath, float pixelHeight);
-		~Font();
-	};
-
-	class Renderer : public Entity, public Transform
-	{
-	public:
-		bool isRenderable;
-		std::shared_ptr<Material> material;
 		std::shared_ptr<Mesh> mesh;
 
-		Renderer(std::shared_ptr<Material> material, std::shared_ptr<Mesh> mesh, bool isRenderable = true);
+		Drawer(std::shared_ptr<Mesh> mesh, bool isVisible = true);
 
-		virtual void OnRender(std::shared_ptr<Window> window, double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
+		bool GetIsVisible();
+		virtual void SetIsVisible(bool value);
+
+		virtual void OnDraw();
 	};
 
-	class EditorPanel : public Renderer
+	class EditorPanel : public Drawer
+	{
+	public:
+		float aspectRatio;
+
+		EditorPanel(bool isVisible = true);
+
+		glm::mat4 GetMatrix() override;
+
+		// TODO: store here text drawer, and buttons
+	};
+
+	class Shader
+	{
+	public:
+		enum class Type : GLenum
+		{
+			Vertex = GL_VERTEX_SHADER, // GL 2.0
+			Fragment = GL_FRAGMENT_SHADER, // GL 2.0
+			Geometry = GL_GEOMETRY_SHADER, // GL 3.2
+			Compute = GL_COMPUTE_SHADER, // GL 4.2
+			TessControl = GL_TESS_CONTROL_SHADER, // GL 4.0
+			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
+		};
+
+		const GLuint shader;
+		const Type type;
+
+		Shader(Type type, const std::string& source, bool readFromFile);
+		~Shader();
+	};
+
+	class Material
+	{
+	public:
+		enum class QueueType : uint16_t
+		{
+			Background = 0,
+			Opaque = 10000,
+			Transparent = 20000,
+			Overlay = 30000,
+		};
+	protected:
+		std::set<std::shared_ptr<Drawer>> drawers;
+
+		void Attach(GLuint shader) const;
+		void Detach(GLuint shader) const;
+
+		void Link() const;
+
+		GLuint GetUniformLocation(const std::string& name) const;
+
+		static void SetUniform(GLint index, GLint value);
+		static void SetUniform(GLint index, GLfloat value);
+		static void SetUniform(GLint index, const glm::vec2& value);
+		static void SetUniform(GLint index, const glm::vec3& value);
+		static void SetUniform(GLint index, const glm::vec4& value);
+		static void SetUniform(GLint index, const glm::mat2& value);
+		static void SetUniform(GLint index, const glm::mat3& value);
+		static void SetUniform(GLint index, const glm::mat4& value);
+	public:
+		const GLuint program;
+		uint16_t renderQueue;
+
+		Material(std::shared_ptr<Shader> shader, uint16_t renderQueue);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, uint16_t renderQueue);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3, uint16_t renderQueue);
+
+		~Material();
+
+		void Use() const;
+		static void Release();
+
+		void AddDrawer(std::shared_ptr<Drawer> drawer);
+		void RemoveDrawer(std::shared_ptr<Drawer> drawer);
+
+		virtual void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
+	};
+
+	class ColorMaterial : public Material
+	{
+	public:
+		const GLint mvp;
+		const GLint color;
+
+		ColorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader, uint16_t renderQueue = (uint16_t)QueueType::Opaque);
+
+		void SetMVP(const glm::mat4& value) const;
+		void SetColor(const glm::vec4& value) const;
+
+		void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class ColorTexMaterial : public ColorMaterial
+	{
+	public:
+		const GLint textureMap;
+		std::shared_ptr<Texture2D> texture;
+
+		ColorTexMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader, uint16_t renderQueue = (uint16_t)QueueType::Opaque);
+
+		void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class DiffuseMaterial : public Material
+	{
+	public:
+		const GLint mvp;
+		const GLint normal;
+		const GLint color;
+		const GLint ambientColor;
+		const GLint lightColor;
+		const GLint lightDirection;
+
+		DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader, uint16_t renderQueue = (uint16_t)QueueType::Opaque);
+
+		void SetMVP(const glm::mat4& value) const;
+		void SetNormal(const glm::mat3& value) const;
+		void SetColor(const glm::vec4& value) const;
+		void SetAmbientColor(const glm::vec4& value) const;
+		void SetLightColor(const glm::vec4& value) const;
+		void SetLightDirection(const glm::vec3& value) const;
+
+		void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class EditorMaterial : public Material
+	{
+	public:
+		const GLint model;
+		const GLint color;
+
+		EditorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader, uint16_t renderQueue = (uint16_t)QueueType::Overlay);
+
+		void SetModel(const glm::mat4& value) const;
+		void SetColor(const glm::vec4& value) const;
+
+		void OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class Camera : public Entity, public Transform
 	{
 	protected:
-		float aspectRatio;
-	public:
+		struct MaterialComparator
+		{
+			bool operator()(Material* left, Material* right) const
+			{
+				return left->renderQueue < right->renderQueue;
+			}
+		};
 
-		EditorPanel(bool isRenderable = true);
+		glm::mat4 projMatrix;
+		glm::mat4 viewProjMatrix;
+
+		bool isProjMatrixChaged;
+		bool isViewProjMatrixChaged;
+
+		std::set<std::shared_ptr<Material>> materials;
+	public:
+		Camera();
+
+		void OnRender() override;
+
+		void SetProjMatrixChanged();
+		void SetViewProjMatrixChanged();
+
+		virtual glm::mat4 GetProjMatrix();
+		virtual glm::mat4 GetViewProjMatrix();
+
+		void AddMaterial(std::shared_ptr<Material> material);
+		void RemoveMaterial(std::shared_ptr<Material> material);
+	};
+
+	class PerspectiveCamera : public Camera
+	{
+	public:
+		float fieldOfView;
+		float aspectRatio;
+		float nearClipPlane;
+		float farClipPlane;
+
+		PerspectiveCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
 
 		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
-		glm::mat4 GetMatrix() override;
+		glm::mat4 GetProjMatrix() override;
+	};
+
+	class OrthographicCamera : public Camera
+	{
+		// TODO:
+	};
+
+	class FreeLookCamera : public PerspectiveCamera
+	{
+	public:
+		void OnUpdate() override;
+	};
+
+	class Editor : public Entity
+	{
+	public:
+		const std::shared_ptr<Camera> camera;
+		const std::shared_ptr<EditorMaterial> material;
+		const std::shared_ptr<EditorPanel> topPanel;
+
+		Editor(std::shared_ptr<Camera> camera);
+		~Editor();
+
+		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
 	};
 
 	class Engine
@@ -681,17 +730,15 @@ namespace Injector
 			Vulkan,
 		};
 	protected:
+		static double time;
 		static double lastTime;
+		static double deltaTime;
+
 		static float verticalAxis;
 		static float horizontalAxis;
 
 		static std::shared_ptr<Window> window;
 		static std::set<std::shared_ptr<Entity>> entities;
-
-		static std::shared_ptr<ColorMaterial> colorMaterial;
-		static std::shared_ptr<ColorTexMaterial> colorTexMaterial;
-		static std::shared_ptr<DiffuseMaterial> diffuseMaterial;
-		static std::shared_ptr<EditorMaterial> editorMaterial;
 
 		static std::shared_ptr<Mesh> squareMeshV;
 		static std::shared_ptr<Mesh> squareMeshVN;
@@ -714,13 +761,8 @@ namespace Injector
 		static void Clear();
 
 		template<class TVertex, class TIndex>
-		static std::shared_ptr<Mesh> CreateMesh(Mesh::DrawMode drawMode, Mesh::IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
+		static std::shared_ptr<Mesh> CreateMesh(Mesh::DrawMode drawMode, Mesh::IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<Attribute>& attributes);
 	public:
-		static std::shared_ptr<ColorMaterial> GetColorMaterial();
-		static std::shared_ptr<ColorTexMaterial> GetColorTexMaterial();
-		static std::shared_ptr<DiffuseMaterial> GetDiffuseMaterial();
-		static std::shared_ptr<EditorMaterial> GetEditorMaterial();
-
 		static std::shared_ptr<Mesh> GetSquareMeshV();
 		static std::shared_ptr<Mesh> GetSquareMeshVN();
 
@@ -730,7 +772,10 @@ namespace Injector
 		static void Initialize(WindowType windowType = WindowType::OpenGL);
 		static void Terminate();
 
+		static double GetTime();
 		static double GetLastTime();
+		static double GetDeltaTime();
+
 		static float GetVerticalAxis();
 		static float GetHorizontalAxis();
 
@@ -743,22 +788,24 @@ namespace Injector
 		static void StartUpdate();
 	};
 
-	class DemoController : public Entity
+	class Demo : public Entity
 	{
-	protected:
-		std::shared_ptr<Camera> camera;
-		std::shared_ptr<Renderer> editor;
-		std::shared_ptr<Renderer> cube;
 	public:
-		DemoController();
+		const std::shared_ptr<FreeLookCamera> camera;
+		const std::shared_ptr<Editor> editor;
+		const std::shared_ptr<DiffuseMaterial> diffuseMaterial;
+		const std::shared_ptr<Drawer> cubeDrawer;
 
-		void OnUpdate(double time, double deltaTime) override;
+		Demo();
+		~Demo();
+
+		void OnUpdate() override;
 	};
 
 	static void StartDemo()
 	{
 		Engine::Initialize();
-		Engine::AddEntity(std::make_shared<DemoController>());
+		Engine::AddEntity(std::make_shared<Demo>());
 		Engine::StartUpdate();
 		Engine::Terminate();
 	}

@@ -9,7 +9,9 @@ namespace Injector
 		return buffer;
 	}
 
-	Buffer::Buffer(Type _type, UsageType _usage, GLsizeiptr _size, const GLvoid* data) : buffer(Generate()), type(_type)
+	Buffer::Buffer(Type _type, UsageType _usage, GLsizeiptr _size, const GLvoid* data) :
+		buffer(Generate()),
+		type(_type)
 	{
 		usage = _usage;
 

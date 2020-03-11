@@ -73,7 +73,9 @@ namespace Injector
 		glUniformMatrix4fv(index, GL_ONE, GL_FALSE, value_ptr(value));
 	}
 
-	Material::Material(std::shared_ptr<Shader> shader) : program(glCreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader, uint16_t _renderQueue) :
+		program(glCreateProgram()),
+		renderQueue(_renderQueue)
 	{
 		auto shaderName = shader->shader;
 		Attach(shaderName);
@@ -81,7 +83,9 @@ namespace Injector
 		Detach(shaderName);
 		Use();
 	}
-	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2) : program(glCreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, uint16_t _renderQueue) :
+		program(glCreateProgram()),
+		renderQueue(_renderQueue)
 	{
 		auto shaderName1 = shader1->shader;
 		auto shaderName2 = shader2->shader;
@@ -96,7 +100,9 @@ namespace Injector
 
 		Use();
 	}
-	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3) : program(glCreateProgram())
+	Material::Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3, uint16_t _renderQueue) :
+		program(glCreateProgram()),
+		renderQueue(_renderQueue)
 	{
 		auto shaderName1 = shader1->shader;
 		auto shaderName2 = shader2->shader;
@@ -129,9 +135,23 @@ namespace Injector
 		glUseProgram(GL_ZERO);
 	}
 
-	void Material::OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
+	void Material::AddDrawer(std::shared_ptr<Drawer> drawer)
+	{
+		if (!drawers.emplace(drawer).second)
+			throw std::runtime_error("Failed to add material drawer");
+	}
+	void Material::RemoveDrawer(std::shared_ptr<Drawer> drawer)
+	{
+		if (!drawers.erase(drawer))
+			throw std::runtime_error("Failed to remove material drawer");
+	}
+
+	void Material::OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
 	{
 		Use();
+
+		for (auto const& drawer : drawers)
+			drawer->OnDraw();
 	}
 
 	// TODO: add program pipeline support

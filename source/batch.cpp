@@ -9,8 +9,13 @@ namespace Injector
 		return vertexArray;
 	}
 
-	Batch::Batch() : vertexArray(Generate()) {}
-	Batch::~Batch() { glDeleteVertexArrays(GL_ONE, &vertexArray); }
+	Batch::Batch() :
+		vertexArray(Generate())
+	{}
+	Batch::~Batch()
+	{
+		glDeleteVertexArrays(GL_ONE, &vertexArray);
+	}
 
 	void Batch::Bind() const
 	{

@@ -9,10 +9,10 @@ namespace Injector
 		return texture;
 	}
 
-	Texture::Texture(Type _type) : texture(Generate()), type(_type)
-	{
-
-	}
+	Texture::Texture(Type _type) :
+		texture(Generate()),
+		type(_type)
+	{}
 	Texture::~Texture()
 	{
 		glDeleteTextures(GL_ONE, &texture);

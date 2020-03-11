@@ -2,7 +2,10 @@
 
 namespace Injector
 {
-	EditorMaterial::EditorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader) : Material(vertexShader, fragmentShader), model(GetUniformLocation("u_Model")), color(GetUniformLocation("u_Color"))
+	EditorMaterial::EditorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader, uint16_t renderQueue) :
+		Material(vertexShader, fragmentShader, renderQueue),
+		model(GetUniformLocation("u_Model")),
+		color(GetUniformLocation("u_Color"))
 	{
 		SetColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
 	}
@@ -16,14 +19,20 @@ namespace Injector
 		SetUniform(color, value);
 	}
 
-	void EditorMaterial::OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
+	void EditorMaterial::OnRender(const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
 	{
+		auto window = Engine::GetWindow();
 		window->SetDepthTesting(true);
 		window->SetStencilTesting(false);
 		window->SetColorBlending(true);
 		window->SetColorBlendType(Window::BlendType::SrcAlpha, Window::BlendType::OneMinusSrcAlpha);
 
 		Use();
-		SetModel(model);
+
+		for (auto const& drawer : drawers)
+		{
+			SetModel(drawer->GetMatrix());
+			drawer->OnDraw();
+		}
 	}
 }

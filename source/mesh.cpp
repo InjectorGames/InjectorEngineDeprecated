@@ -2,7 +2,9 @@
 
 namespace Injector
 {
-	Mesh::Mesh(DrawMode _drawMode, IndexType _indexType, GLsizei _indexCount, std::shared_ptr<Buffer> _vertexBuffer, std::shared_ptr<Buffer> _indexBuffer, const std::vector<VertexAttribute>& vertexAttributes) : vertexBuffer(_vertexBuffer), indexBuffer(_indexBuffer)
+	Mesh::Mesh(DrawMode _drawMode, IndexType _indexType, GLsizei _indexCount, std::shared_ptr<Buffer> _vertexBuffer, std::shared_ptr<Buffer> _indexBuffer, const std::vector<Attribute>& attributes) :
+		vertexBuffer(_vertexBuffer),
+		indexBuffer(_indexBuffer)
 	{
 		drawMode = _drawMode;
 		indexType = _indexType;
@@ -12,7 +14,7 @@ namespace Injector
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 
-		for (const auto& attribute : vertexAttributes)
+		for (const auto& attribute : attributes)
 		{
 			attribute.Enable();
 			attribute.SetPointer();
@@ -28,7 +30,7 @@ namespace Injector
 		glDrawElements((GLenum)drawMode, indexCount, (GLenum)indexType, 0);
 	}
 
-	void Mesh::OnRender()
+	void Mesh::OnDraw()
 	{
 		Bind();
 		DrawElements();

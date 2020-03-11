@@ -2,17 +2,15 @@
 
 namespace Injector
 {
+	double Engine::time = 0;
 	double Engine::lastTime = 0;
+	double Engine::deltaTime = 0;
+
 	float Engine::verticalAxis = 0;
 	float Engine::horizontalAxis = 0;
 
 	std::shared_ptr<Window> Engine::window = {};
 	std::set<std::shared_ptr<Entity>> Engine::entities = {};
-
-	std::shared_ptr<ColorMaterial> Engine::colorMaterial = {};
-	std::shared_ptr<ColorTexMaterial> Engine::colorTexMaterial = {};
-	std::shared_ptr<DiffuseMaterial> Engine::diffuseMaterial = {};
-	std::shared_ptr<EditorMaterial> Engine::editorMaterial = {};
 
 	std::shared_ptr<Mesh> Engine::squareMeshV = {};
 	std::shared_ptr<Mesh> Engine::squareMeshVN = {};
@@ -124,72 +122,31 @@ namespace Injector
 
 	void Engine::Clear()
 	{
+		// TODO: remove meshes
 		cubeMeshVN = {};
 		cubeMeshV = {};
 		squareMeshVN = {};
 		squareMeshV = {};
-
-		editorMaterial = {};
-		diffuseMaterial = {};
-		colorTexMaterial = {};
-		colorMaterial = {};
 
 		entities.clear();
 		window = {};
 	}
 
 	template<class TVertex, class TIndex>
-	std::shared_ptr<Mesh> Engine::CreateMesh(Mesh::DrawMode drawMode, Mesh::IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes)
+	std::shared_ptr<Mesh> Engine::CreateMesh(Mesh::DrawMode drawMode, Mesh::IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<Attribute>& attributes)
 	{
 		auto vertexBuffer = std::make_shared<Buffer>(Buffer::Type::Array, usage, vertices.size() * sizeof(TVertex), &vertices[0]);
 
 		auto indexBuffer = std::make_shared<Buffer>(Buffer::Type::ElementArray, usage, indices.size() * sizeof(TIndex), &indices[0]);
 
-		return std::make_shared<Mesh>(drawMode, indexType, indices.size(), vertexBuffer, indexBuffer, vertexAttributes);
-	}
-
-	std::shared_ptr<ColorMaterial> Engine::GetColorMaterial()
-	{
-		if (!colorMaterial)
-		{
-			colorMaterial = std::make_shared<ColorMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/color.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/color.frag", true));
-		}
-
-		return colorMaterial;
-	}
-	std::shared_ptr<ColorTexMaterial> Engine::GetColorTexMaterial()
-	{
-		if (!colorTexMaterial)
-		{
-			colorTexMaterial = std::make_shared<ColorTexMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/color_tex.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/color_tex.frag", true));
-		}
-
-		return colorTexMaterial;
-	}
-	std::shared_ptr<DiffuseMaterial> Engine::GetDiffuseMaterial()
-	{
-		if (!diffuseMaterial)
-		{
-			diffuseMaterial = std::make_shared<DiffuseMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/diffuse.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/diffuse.frag", true));
-		}
-
-		return diffuseMaterial;
-	}
-	std::shared_ptr<EditorMaterial> Engine::GetEditorMaterial()
-	{
-		if (!editorMaterial)
-		{
-			editorMaterial = std::make_shared<EditorMaterial>(std::make_shared<Shader>(Shader::Type::Vertex, "resources/shaders/editor.vert", true), std::make_shared<Shader>(Shader::Type::Fragment, "resources/shaders/editor.frag", true));
-		}
-
-		return editorMaterial;
+		return std::make_shared<Mesh>(drawMode, indexType, indices.size(), vertexBuffer, indexBuffer, attributes);
 	}
 
 	std::shared_ptr<Mesh> Engine::GetSquareMeshV()
 	{
 		if (!squareMeshV)
 		{
-			std::vector<VertexAttribute> vertexAttributes = { VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0), };
+			std::vector<Attribute> vertexAttributes = { Attribute(0, Attribute::Size::Three, Attribute::Type::Float, false, 0, 0), };
 			squareMeshV = CreateMesh<GLfloat, GLbyte>(Mesh::DrawMode::Triangles, Mesh::IndexType::UnsignedByte, Buffer::UsageType::StaticDraw, Primitive::SquareVertices, Primitive::SquareIndices, vertexAttributes);
 		}
 
@@ -199,10 +156,10 @@ namespace Injector
 	{
 		if (!squareMeshVN)
 		{
-			std::vector<VertexAttribute> vertexAttributes =
+			std::vector<Attribute> vertexAttributes =
 			{
-				VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
-				VertexAttribute(1, VertexAttribute::Size::Three, VertexAttribute::Type::Float, true, 0, Primitive::SquareVertices.size() * sizeof(GLfloat)),
+				Attribute(0, Attribute::Size::Three, Attribute::Type::Float, false, 0, 0),
+				Attribute(1, Attribute::Size::Three, Attribute::Type::Float, true, 0, Primitive::SquareVertices.size() * sizeof(GLfloat)),
 			};
 
 			auto vertices(Primitive::SquareVertices);
@@ -217,7 +174,7 @@ namespace Injector
 	{
 		if (!cubeMeshV)
 		{
-			std::vector<VertexAttribute> vertexAttributes = { VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0), };
+			std::vector<Attribute> vertexAttributes = { Attribute(0, Attribute::Size::Three, Attribute::Type::Float, false, 0, 0), };
 			return CreateMesh<GLfloat, GLbyte>(Mesh::DrawMode::Triangles, Mesh::IndexType::UnsignedByte, Buffer::UsageType::StaticDraw, Primitive::CubeVertices, Primitive::CubeIndices, vertexAttributes);
 		}
 
@@ -227,10 +184,10 @@ namespace Injector
 	{
 		if (!cubeMeshVN)
 		{
-			std::vector<VertexAttribute> vertexAttributes =
+			std::vector<Attribute> vertexAttributes =
 			{
-				VertexAttribute(0, VertexAttribute::Size::Three, VertexAttribute::Type::Float, false, 0, 0),
-				VertexAttribute(1, VertexAttribute::Size::Three, VertexAttribute::Type::Float, true, 0, Primitive::CubeVertices.size() * sizeof(GLfloat)),
+				Attribute(0, Attribute::Size::Three, Attribute::Type::Float, false, 0, 0),
+				Attribute(1, Attribute::Size::Three, Attribute::Type::Float, true, 0, Primitive::CubeVertices.size() * sizeof(GLfloat)),
 			};
 
 			auto vertices(Primitive::CubeVertices);
@@ -273,10 +230,19 @@ namespace Injector
 		glfwTerminate();
 	}
 
+	double Engine::GetTime()
+	{
+		return time;
+	}
 	double Engine::GetLastTime()
 	{
 		return lastTime;
 	}
+	double Engine::GetDeltaTime()
+	{
+		return deltaTime;
+	}
+
 	float Engine::GetVerticalAxis()
 	{
 		return verticalAxis;
@@ -328,12 +294,12 @@ namespace Injector
 	void Engine::AddEntity(std::shared_ptr<Entity> entity)
 	{
 		if (!entities.emplace(entity).second)
-			throw std::runtime_error("Failed to add entity");
+			throw std::runtime_error("Failed to add engine entity");
 	}
 	void Engine::RemoveEntity(std::shared_ptr<Entity> entity)
 	{
 		if (!entities.erase(entity))
-			throw std::runtime_error("Failed to remove entity");
+			throw std::runtime_error("Failed to remove engine entity");
 	}
 
 	void Engine::StartUpdate()
@@ -344,26 +310,13 @@ namespace Injector
 		{
 			currentWindow->ClearBuffers();
 
-			auto time = glfwGetTime();
-			auto deltaTime = time - lastTime;
+			time = glfwGetTime();
+			deltaTime = time - lastTime;
 
 			for (auto const& entity : entities)
-			{
-				entity->OnUpdate(time, deltaTime);
-
-				if (auto camera = std::dynamic_pointer_cast<Camera>(entity))
-				{
-					auto view = camera->GetMatrix();
-					auto proj = camera->GetProjMatrix();
-					auto viewProj = proj * view;
-
-					for (auto const& subEntity : entities)
-					{
-						if (auto renderer = std::dynamic_pointer_cast<Renderer>(subEntity))
-							renderer->OnRender(currentWindow, time, deltaTime, view, proj, viewProj);
-					}
-				}
-			}
+				entity->OnUpdate();
+			for (auto const& entity : entities)
+				entity->OnRender();
 
 			lastTime = time;
 
