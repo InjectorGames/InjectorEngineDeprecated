@@ -17,4 +17,5 @@ namespace Injector
 	void Entity::OnWindowMaximize(GLFWwindow* window, int iconified) {}
 	void Entity::OnWindowFocus(GLFWwindow* window, int focused) {}
 	void Entity::OnWindowRefresh(GLFWwindow* window) {}
+	void Entity::OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {}
 }

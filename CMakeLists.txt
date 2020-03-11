@@ -20,10 +20,14 @@ set(INJECTOR_ENGINE_RESOURCE_FILES
     fonts/jetbrains_mono/medium_italic.ttf
     fonts/jetbrains_mono/regular.ttf
 
-    shaders/ambient.frag
-    shaders/ambient.vert
+    shaders/color.frag
+    shaders/color.vert
+    shaders/color_tex.frag
+    shaders/color_tex.vert
     shaders/diffuse.frag
     shaders/diffuse.vert
+    shaders/editor.frag
+    shaders/editor.vert
 
     images/logo_16.png
     images/logo_32.png
@@ -35,13 +39,19 @@ foreach(FILE ${INJECTOR_ENGINE_RESOURCE_FILES})
 endforeach(FILE)
 
 add_library(${PROJECT_NAME} STATIC
-    source/ambient_material.cpp
+    source/batch.cpp
     source/buffer.cpp
     source/camera.cpp
+    source/color_material.cpp
+    source/color_tex_material.cpp
+    source/demo_controller.cpp
     source/diffuse_material.cpp
+    source/editor_material.cpp
+    source/editor_panel.cpp
     source/engine.cpp
     source/entity.cpp
     source/font.cpp
+    source/free_look_camera.cpp
     source/image.cpp
     source/material.cpp
     source/mesh.cpp
@@ -53,7 +63,6 @@ add_library(${PROJECT_NAME} STATIC
     source/texture.cpp
     source/texture_2d.cpp
     source/transform.cpp
-    source/vertex_array.cpp
     source/vertex_attribute.cpp
     source/window.cpp
 )

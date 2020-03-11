@@ -2,16 +2,16 @@
 
 namespace Injector
 {
-	void Material::Attach(GLuint shader)
+	void Material::Attach(GLuint shader) const
 	{
 		glAttachShader(program, shader);
 	}
-	void Material::Detach(GLuint shader)
+	void Material::Detach(GLuint shader) const
 	{
 		glDetachShader(program, shader);
 	}
 
-	void Material::Link()
+	void Material::Link() const
 	{
 		glLinkProgram(program);
 
@@ -40,6 +40,10 @@ namespace Injector
 		return location;
 	}
 
+	void Material::SetUniform(GLint index, GLint value)
+	{
+		glUniform1i(index, value);
+	}
 	void Material::SetUniform(GLint index, GLfloat value)
 	{
 		glUniform1f(index, value);
@@ -123,6 +127,11 @@ namespace Injector
 	void Material::Release()
 	{
 		glUseProgram(GL_ZERO);
+	}
+
+	void Material::OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
+	{
+		Use();
 	}
 
 	// TODO: add program pipeline support

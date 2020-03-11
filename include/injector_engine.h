@@ -28,13 +28,27 @@ namespace Injector
 		std::ifstream ifs(filePath);
 
 		if (!ifs)
-			throw std::runtime_error("Failed to open shader file.");
+			throw std::runtime_error("Failed to open text file.");
 
 		ifs.seekg(0, std::ios::end);
 		size_t size = ifs.tellg();
+		ifs.seekg(0, std::ios::beg);
 		std::string buffer(size, ' ');
-		ifs.seekg(0);
 		ifs.read(&buffer[0], size);
+		return buffer;
+	}
+	static std::vector<unsigned char> ReadBytesFromFile(const std::string& filePath)
+	{
+		std::ifstream ifs(filePath);
+
+		if (!ifs)
+			throw std::runtime_error("Failed to open binary file.");
+
+		ifs.seekg(0, std::ios::end);
+		size_t size = ifs.tellg();
+		ifs.seekg(0, std::ios::beg);
+		std::vector<unsigned char> buffer(size);
+		ifs.read((char*)&buffer[0], size);
 		return buffer;
 	}
 
@@ -55,6 +69,7 @@ namespace Injector
 		virtual void OnWindowMaximize(GLFWwindow* window, int iconified);
 		virtual void OnWindowFocus(GLFWwindow* window, int focused);
 		virtual void OnWindowRefresh(GLFWwindow* window);
+		virtual void OnKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	};
 
 	class Transform
@@ -76,92 +91,137 @@ namespace Injector
 		virtual glm::mat4 GetMatrix();
 	};
 
-	class Shader
-	{
-	public:
-		enum class Type : GLenum
-		{
-			Vertex = GL_VERTEX_SHADER, // GL 2.0
-			Fragment = GL_FRAGMENT_SHADER, // GL 2.0
-			Geometry = GL_GEOMETRY_SHADER, // GL 3.2
-			Compute = GL_COMPUTE_SHADER, // GL 4.2
-			TessControl = GL_TESS_CONTROL_SHADER, // GL 4.0
-			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
-		};
-
-		const GLuint shader;
-		const Type type;
-
-		Shader(Type type, const std::string& source, bool readFromFile);
-		~Shader();
-	};
-
-	class Material
+	class Camera : public Entity, public Transform
 	{
 	protected:
-		void Attach(GLuint shader);
-		void Detach(GLuint shader);
+		glm::mat4 projMatrix;
+		glm::mat4 viewProjMatrix;
 
-		void Link();
-
-		GLuint GetUniformLocation(const std::string& name) const;
-
-		static void SetUniform(GLint index, GLfloat value);
-		static void SetUniform(GLint index, const glm::vec2& value);
-		static void SetUniform(GLint index, const glm::vec3& value);
-		static void SetUniform(GLint index, const glm::vec4& value);
-		static void SetUniform(GLint index, const glm::mat2& value);
-		static void SetUniform(GLint index, const glm::mat3& value);
-		static void SetUniform(GLint index, const glm::mat4& value);
+		bool isProjMatrixChaged;
+		bool isViewProjMatrixChaged;
 	public:
-		const GLuint program;
+		Camera();
 
-		Material(std::shared_ptr<Shader> shader);
-		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2);
-		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3);
+		void SetProjMatrixChanged();
+		void SetViewProjMatrixChanged();
 
-		~Material();
-
-		void Use() const;
-		static void Release();
-
-		virtual void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const = 0;
+		virtual glm::mat4 GetProjMatrix();
+		virtual glm::mat4 GetViewProjMatrix();
 	};
 
-	class AmbientMaterial : public Material
+	class PerspectiveCamera : public Camera
 	{
 	public:
-		const GLint mvp;
-		const GLint color;
+		float fieldOfView;
+		float aspectRatio;
+		float nearClipPlane;
+		float farClipPlane;
 
-		AmbientMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+		PerspectiveCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
 
-		void SetMVP(const glm::mat4& value) const;
-		void SetColor(const glm::vec4& value) const;
-
-		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const override;
+		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
+		glm::mat4 GetProjMatrix() override;
 	};
 
-	class DiffuseMaterial : public Material
+	class FreeLookCamera : public PerspectiveCamera
 	{
 	public:
-		const GLint mvp;
-		const GLint normal;
-		const GLint color;
-		const GLint ambientColor;
-		const GLint lightColor;
-		const GLint lightDirection;
+		void OnUpdate(double time, double deltaTime) override;
+	};
 
-		DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+	class Window
+	{
+	public:
+		enum class CullType
+		{
+			Front,
+			Back,
+			Both,
+		};
+		enum class BlendType
+		{
+			Zero,
+			One,
+			SrcColor,
+			OneMinusSrcColor,
+			DstColor,
+			OneMinusDstColor,
+			SrcAlpha,
+			OneMinusSrcAlpha,
+			DstAlpha,
+			OneMinusDstAlpha,
+			ConstColor,
+			OneMinusConstColor,
+			ConstAlpha,
+			OneMinusConstAlpha,
+			SrcAlphaSaturate,
+			Src1Color,
+			OneMinusSrc1Color,
+			Src1Alpha,
+			OneMinusSrc1Alpha,
+		};
+	protected:
+		bool windigOrder;
+		bool faceCulling;
+		bool depthTesting;
+		bool stencilTesting;
+		bool colorBlending;
 
-		void SetMVP(const glm::mat4& value) const;
-		void SetNormal(const glm::mat3& value) const;
-		void SetColor(const glm::vec4& value) const;
-		void SetAmbientColor(const glm::vec4& value) const;
-		void SetLightColor(const glm::vec4& value) const;
-		void SetLightDirection(const glm::vec3& value) const;
+		virtual GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share);
+	public:
+		GLFWwindow* const window;
 
-		void OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const override;
+		Window(int width = 800, int height = 600, const std::string& title = "Untitled Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
+		~Window();
+
+		void SetWindowIcon(const std::vector<GLFWimage>& icons) const;
+
+		void MakeContextCurrent() const;
+		static void DetachContextCurrent();
+
+		virtual void ClearBuffers() = 0;
+
+		bool GetFaceCullingFlag();
+		bool GetDepthTestFlag();
+		bool GetStencilTestFlag();
+		bool GetBlendFlag();
+
+		virtual void SetWindingOrder(bool clockwise) = 0;
+		virtual void SetFaceCulling(bool value) = 0;
+		virtual void SetDepthTesting(bool value) = 0;
+		virtual void SetStencilTesting(bool value) = 0;
+		virtual void SetColorBlending(bool value) = 0;
+		
+		virtual void SetFaceCullType(CullType type) = 0;
+		virtual void SetColorBlendType(BlendType source, BlendType destination) = 0;
+		virtual void SetColorBlendType(BlendType sourceColor, BlendType destinationColor, BlendType sourceAlpha, BlendType destinationAlpha) = 0;
+	};
+
+	class OpenGLWindow : public Window
+	{
+	protected:
+		GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) override;
+
+		static GLenum BlendTypeToEnum(BlendType type);
+	public:
+		OpenGLWindow(int width = 800, int height = 600, const std::string& title = "OpenGL Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
+
+		void ClearBuffers() override;
+
+		void SetWindingOrder(bool clockwise) override;
+		void SetFaceCulling(bool value) override;
+		void SetDepthTesting(bool value) override;
+		void SetStencilTesting(bool value) override;
+		void SetColorBlending(bool value) override;
+
+		void SetFaceCullType(CullType type) override;
+		void SetColorBlendType(BlendType source, BlendType destination) override;
+		void SetColorBlendType(BlendType sourceColor, BlendType destinationColor, BlendType sourceAlpha, BlendType destinationAlpha) override;
+	};
+
+	class VulkanWindow : public Window
+	{
+		// TODO: 
 	};
 
 	class Texture
@@ -192,6 +252,8 @@ namespace Injector
 
 		void Bind() const;
 		void Unbind() const;
+
+		void Activate(GLint index) const;
 	};
 
 	class Texture2D : public Texture
@@ -270,6 +332,122 @@ namespace Injector
 		Texture2D(ImageType image, GLint level, InternalFormatType internalFormat, GLsizei width, GLsizei height, FormatType format, PixelType pixel, const GLvoid* data, bool generateMipmap);
 	};
 
+	class Shader
+	{
+	public:
+		enum class Type : GLenum
+		{
+			Vertex = GL_VERTEX_SHADER, // GL 2.0
+			Fragment = GL_FRAGMENT_SHADER, // GL 2.0
+			Geometry = GL_GEOMETRY_SHADER, // GL 3.2
+			Compute = GL_COMPUTE_SHADER, // GL 4.2
+			TessControl = GL_TESS_CONTROL_SHADER, // GL 4.0
+			TessEvaluation = GL_TESS_EVALUATION_SHADER, // GL 4.0
+		};
+
+		const GLuint shader;
+		const Type type;
+
+		Shader(Type type, const std::string& source, bool readFromFile);
+		~Shader();
+	};
+
+	class Material
+	{
+	protected:
+
+
+		void Attach(GLuint shader) const;
+		void Detach(GLuint shader) const;
+
+		void Link() const;
+
+		GLuint GetUniformLocation(const std::string& name) const;
+
+		static void SetUniform(GLint index, GLint value);
+		static void SetUniform(GLint index, GLfloat value);
+		static void SetUniform(GLint index, const glm::vec2& value);
+		static void SetUniform(GLint index, const glm::vec3& value);
+		static void SetUniform(GLint index, const glm::vec4& value);
+		static void SetUniform(GLint index, const glm::mat2& value);
+		static void SetUniform(GLint index, const glm::mat3& value);
+		static void SetUniform(GLint index, const glm::mat4& value);
+	public:
+		const GLuint program;
+
+		Material(std::shared_ptr<Shader> shader);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2);
+		Material(std::shared_ptr<Shader> shader1, std::shared_ptr<Shader> shader2, std::shared_ptr<Shader> shader3);
+
+		~Material();
+
+		void Use() const;
+		static void Release();
+
+		virtual void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
+	};
+
+	class ColorMaterial : public Material
+	{
+	public:
+		const GLint mvp;
+		const GLint color;
+
+		ColorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+
+		void SetMVP(const glm::mat4& value) const;
+		void SetColor(const glm::vec4& value) const;
+
+		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class ColorTexMaterial : public ColorMaterial
+	{
+	public:
+		const GLint textureMap;
+		std::shared_ptr<Texture2D> texture;
+
+		ColorTexMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+
+		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class DiffuseMaterial : public Material
+	{
+	public:
+		const GLint mvp;
+		const GLint normal;
+		const GLint color;
+		const GLint ambientColor;
+		const GLint lightColor;
+		const GLint lightDirection;
+
+		DiffuseMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+
+		void SetMVP(const glm::mat4& value) const;
+		void SetNormal(const glm::mat3& value) const;
+		void SetColor(const glm::vec4& value) const;
+		void SetAmbientColor(const glm::vec4& value) const;
+		void SetLightColor(const glm::vec4& value) const;
+		void SetLightDirection(const glm::vec3& value) const;
+
+		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
+	class EditorMaterial : public Material
+	{
+	public:
+		const GLint model;
+		const GLint color;
+
+		EditorMaterial(std::shared_ptr<Shader> vertexShader, std::shared_ptr<Shader> fragmentShader);
+
+		void SetModel(const glm::mat4& value) const;
+		void SetColor(const glm::vec4& value) const;
+
+		void OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) override;
+	};
+
 	class Buffer
 	{
 	public:
@@ -334,15 +512,15 @@ namespace Injector
 		void SetSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data);
 	};
 
-	class VertexArray
+	class Batch
 	{
 	protected:
 		static GLuint Generate();
 	public:
 		const GLuint vertexArray;
 
-		VertexArray();
-		~VertexArray();
+		Batch();
+		~Batch();
 
 		void Bind() const;
 		static void Unbind();
@@ -392,12 +570,9 @@ namespace Injector
 	class Primitive
 	{
 	public:
-		static const std::vector<GLfloat> TriangleVertices;
-		static const std::vector<GLfloat> TriangleNormals;
-		static const std::vector<GLbyte> TriangleIndices;
-
 		static const std::vector<GLfloat> SquareVertices;
 		static const std::vector<GLfloat> SquareNormals;
+		static const std::vector<GLfloat> SquareTexCoords;
 		static const std::vector<GLbyte> SquareIndices;
 
 		static const std::vector<GLfloat> CubeVertices;
@@ -405,7 +580,7 @@ namespace Injector
 		static const std::vector<GLbyte> CubeIndices;
 	};
 
-	class Mesh : public VertexArray
+	class Mesh : public Batch
 	{
 	public:
 		enum class DrawMode : GLenum
@@ -441,17 +616,6 @@ namespace Injector
 
 		void DrawElements();
 		virtual void OnRender();
-
-		template<class TVertex, class TIndex>
-		static std::shared_ptr<Mesh> Create(DrawMode drawMode, IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
-
-		static std::shared_ptr<Mesh> CreateTriangleV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
-		static std::shared_ptr<Mesh> CreateSquareV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
-		static std::shared_ptr<Mesh> CreateCubeV(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
-
-		static std::shared_ptr<Mesh> CreateTriangleVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
-		static std::shared_ptr<Mesh> CreateSquareVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
-		static std::shared_ptr<Mesh> CreateCubeVN(DrawMode drawMode = DrawMode::Triangles, Buffer::UsageType usage = Buffer::UsageType::StaticDraw);
 	};
 
 	class Image
@@ -477,107 +641,33 @@ namespace Injector
 
 	class Font
 	{
-
+	public:
+		Font(const std::string& filePath, float pixelHeight);
+		~Font();
 	};
 
 	class Renderer : public Entity, public Transform
 	{
 	public:
+		bool isRenderable;
 		std::shared_ptr<Material> material;
 		std::shared_ptr<Mesh> mesh;
 
-		Renderer(std::shared_ptr<Material> material, std::shared_ptr<Mesh> mesh);
+		Renderer(std::shared_ptr<Material> material, std::shared_ptr<Mesh> mesh, bool isRenderable = true);
 
-		virtual void OnRender(double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
+		virtual void OnRender(std::shared_ptr<Window> window, double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj);
 	};
 
-	class Camera : public Entity, public Transform
+	class EditorPanel : public Renderer
 	{
 	protected:
-		glm::mat4 projMatrix;
-		glm::mat4 viewProjMatrix;
-
-		bool isProjMatrixChaged;
-		bool isViewProjMatrixChaged;
-
-		std::set<std::shared_ptr<Renderer>> renderers;
-	public:
-		Camera();
-
-		void SetProjMatrixChanged();
-		void SetViewProjMatrixChanged();
-
-		glm::mat4 GetMatrix() override;
-		virtual glm::mat4 GetProjMatrix() = 0;
-		virtual glm::mat4 GetViewProjMatrix();
-
-		void OnUpdate(double time, double deltaTime) override;
-
-		void AddRenderer(std::shared_ptr<Renderer> renderer);
-		void RemoveRenderer(std::shared_ptr<Renderer> renderer);
-	};
-
-	class PerspectiveCamera : public Camera
-	{
-	public:
-		float fieldOfView;
 		float aspectRatio;
-		float nearClipPlane;
-		float farClipPlane;
+	public:
 
-		PerspectiveCamera(float fieldOfView = 45.0f, float aspectRatio = 4.0f / 3.0f, float nearClipPlane = 0.01f, float farClipPlane = 1000.0f);
+		EditorPanel(bool isRenderable = true);
 
 		void OnFramebufferSize(GLFWwindow* window, int width, int height) override;
-		glm::mat4 GetProjMatrix() override;
-	};
-
-	class Window
-	{
-	protected:
-		bool cullFaceFlag;
-		bool depthTestFlag;
-		bool stencilTestFlag;
-
-		virtual GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) const;
-	public:
-		GLFWwindow* const window;
-
-		Window(int width = 800, int height = 600, const std::string& title = "Untitled Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
-		~Window();
-
-		void SetWindowIcon(const std::vector<GLFWimage>& icons) const;
-
-		void MakeContextCurrent() const;
-		static void DetachContextCurrent();
-
-		bool GetCullFaceFlag();
-		bool GetDepthTestFlag();
-		bool GetStencilTestFlag();
-
-		virtual void SetCullFaceFlag(bool value) = 0;
-		virtual void SetDepthTestFlag(bool value) = 0;
-		virtual void SetStencilTestFlag(bool value) = 0;
-
-		virtual void ClearBuffers() = 0;
-	};
-
-	class OpenGLWindow : public Window
-	{
-	protected:
-		GLFWwindow* CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) const override;
-	public:
-		OpenGLWindow(int width = 800, int height = 600, const std::string& title = "OpenGL Window", GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr);
-
-		void SetCullFaceFlag(bool value) override;
-		void SetDepthTestFlag(bool value) override;
-		void SetStencilTestFlag(bool value) override;
-
-		void ClearBuffers() override;
-	};
-
-	class VulkanWindow : public Window
-	{
-		// TODO: 
+		glm::mat4 GetMatrix() override;
 	};
 
 	class Engine
@@ -587,20 +677,25 @@ namespace Injector
 		{
 			Unknown,
 			OpenGL,
-			OpenES,
+			OpenGLES,
 			Vulkan,
 		};
 	protected:
 		static double lastTime;
+		static float verticalAxis;
+		static float horizontalAxis;
 
 		static std::shared_ptr<Window> window;
 		static std::set<std::shared_ptr<Entity>> entities;
 
-		static std::shared_ptr<AmbientMaterial> ambientMaterial;
+		static std::shared_ptr<ColorMaterial> colorMaterial;
+		static std::shared_ptr<ColorTexMaterial> colorTexMaterial;
 		static std::shared_ptr<DiffuseMaterial> diffuseMaterial;
+		static std::shared_ptr<EditorMaterial> editorMaterial;
 
-		static std::shared_ptr<Mesh> triangleMeshV;
 		static std::shared_ptr<Mesh> squareMeshV;
+		static std::shared_ptr<Mesh> squareMeshVN;
+		static std::shared_ptr<Mesh> squareMeshVNU;
 		static std::shared_ptr<Mesh> cubeMeshV;
 		static std::shared_ptr<Mesh> cubeMeshVN;
 
@@ -614,19 +709,30 @@ namespace Injector
 		static void WindowMaximizeCallback(GLFWwindow* window, int maximized);
 		static void WindowFocusCallback(GLFWwindow* window, int focused);
 		static void WindowRefreshCallback(GLFWwindow* window);
+		static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 		static void Clear();
-	public:
-		static std::shared_ptr<AmbientMaterial> GetAmbientMaterial();
-		static std::shared_ptr<DiffuseMaterial> GetDiffuseMaterial();
 
-		static std::shared_ptr<Mesh> GetTriangleMeshV();
+		template<class TVertex, class TIndex>
+		static std::shared_ptr<Mesh> CreateMesh(Mesh::DrawMode drawMode, Mesh::IndexType indexType, Buffer::UsageType usage, const std::vector<TVertex>& vertices, const std::vector<TIndex>& indices, const std::vector<VertexAttribute>& vertexAttributes);
+	public:
+		static std::shared_ptr<ColorMaterial> GetColorMaterial();
+		static std::shared_ptr<ColorTexMaterial> GetColorTexMaterial();
+		static std::shared_ptr<DiffuseMaterial> GetDiffuseMaterial();
+		static std::shared_ptr<EditorMaterial> GetEditorMaterial();
+
 		static std::shared_ptr<Mesh> GetSquareMeshV();
+		static std::shared_ptr<Mesh> GetSquareMeshVN();
+
 		static std::shared_ptr<Mesh> GetCubeMeshV();
 		static std::shared_ptr<Mesh> GetCubeMeshVN();
 
 		static void Initialize(WindowType windowType = WindowType::OpenGL);
 		static void Terminate();
+
+		static double GetLastTime();
+		static float GetVerticalAxis();
+		static float GetHorizontalAxis();
 
 		static std::shared_ptr<Window> GetWindow();
 		static void SwitchWindow(WindowType windowType);
@@ -634,27 +740,26 @@ namespace Injector
 		static void AddEntity(std::shared_ptr<Entity> entity);
 		static void RemoveEntity(std::shared_ptr<Entity> entity);
 
-		static void Update();
+		static void StartUpdate();
 	};
 
-	static void InitDemo()
+	class DemoController : public Entity
 	{
-		auto window = Engine::GetWindow();
-		window->SetCullFaceFlag(true);
+	protected:
+		std::shared_ptr<Camera> camera;
+		std::shared_ptr<Renderer> editor;
+		std::shared_ptr<Renderer> cube;
+	public:
+		DemoController();
 
-		auto camera = std::make_shared<PerspectiveCamera>();
-		Engine::AddEntity(camera);
+		void OnUpdate(double time, double deltaTime) override;
+	};
 
-		auto renderer = std::make_shared<Renderer>(Engine::GetDiffuseMaterial(), Engine::GetCubeMeshVN());
-		camera->AddRenderer(renderer);
-	}
 	static void StartDemo()
 	{
 		Engine::Initialize();
-
-		InitDemo();
-
-		Engine::Update();
+		Engine::AddEntity(std::make_shared<DemoController>());
+		Engine::StartUpdate();
 		Engine::Terminate();
 	}
 }

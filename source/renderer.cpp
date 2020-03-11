@@ -2,22 +2,19 @@
 
 namespace Injector
 {
-	Renderer::Renderer(std::shared_ptr<Material> _material, std::shared_ptr<Mesh> _mesh) : Entity("UntitledRenderer")
+	Renderer::Renderer(std::shared_ptr<Material> _material, std::shared_ptr<Mesh> _mesh, bool _isRenderable) : Entity("UntitledRenderer")
 	{
+		isRenderable = _isRenderable;
 		material = _material;
 		mesh = _mesh;
 	}
 
-	void Renderer::OnRender(double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
+	void Renderer::OnRender(std::shared_ptr<Window> window, double time, double deltaTime, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
 	{
-		// TEMPORARY
-		Rotate(glm::quat(glm::vec3(deltaTime / 2.0f, deltaTime, 0.0f)));
-		SetMatrixChanged();
-
-		if (material && mesh)
+		if (isRenderable && material && mesh)
 		{
 			auto model = GetMatrix();
-			material->OnRender(model, view, proj, viewProj);
+			material->OnRender(window, model, view, proj, viewProj);
 			mesh->OnRender();
 		}
 	}

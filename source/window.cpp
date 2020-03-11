@@ -2,7 +2,7 @@
 
 namespace Injector
 {
-	GLFWwindow* Window::CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) const
+	GLFWwindow* Window::CreateWindow(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share)
 	{
 		auto window = glfwCreateWindow(width, height, title.c_str(), monitor, share);
 
@@ -14,9 +14,10 @@ namespace Injector
 
 	Window::Window(int width, int height, const std::string& title, GLFWmonitor* monitor, GLFWwindow* share) : window(CreateWindow(width, height, title, monitor, share))
 	{
-		cullFaceFlag = false;
-		depthTestFlag = false;
-		stencilTestFlag = false;
+		faceCulling = false;
+		depthTesting = false;
+		stencilTesting = false;
+		colorBlending = false;
 	}
 	Window::~Window()
 	{
@@ -37,16 +38,20 @@ namespace Injector
 		glfwMakeContextCurrent(nullptr);
 	}
 
-	bool Window::GetCullFaceFlag()
+	bool Window::GetFaceCullingFlag()
 	{
-		return cullFaceFlag;
+		return faceCulling;
 	}
 	bool Window::GetDepthTestFlag()
 	{
-		return depthTestFlag;
+		return depthTesting;
 	}
 	bool Window::GetStencilTestFlag()
 	{
-		return stencilTestFlag;
+		return stencilTesting;
+	}
+	bool Window::GetBlendFlag() 
+	{
+		return colorBlending;
 	}
 }

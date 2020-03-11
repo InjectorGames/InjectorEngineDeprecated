@@ -29,7 +29,8 @@ namespace Injector
 	{
 		if (isMatrixChaged)
 		{
-			matrix = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), scale) * glm::mat4_cast(glm::normalize(rotation));
+			auto oneMatrix = glm::mat4(1.0f);
+			matrix = glm::translate(oneMatrix, position) * glm::scale(oneMatrix, scale) * glm::mat4_cast(glm::normalize(rotation));
 			isMatrixChaged = false;
 		}
 

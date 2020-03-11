@@ -2,20 +2,6 @@
 
 namespace Injector
 {
-	const std::vector<GLfloat> Primitive::TriangleVertices = 
-	{
-		-0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f,
-	};
-
-	const std::vector<GLfloat> Primitive::TriangleNormals =
-	{
-		0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f,
-	};
-	const std::vector<GLbyte> Primitive::TriangleIndices =
-	{
-		0, 1, 2,
-	};
-
 	const std::vector<GLfloat> Primitive::SquareVertices =
 	{
 		-0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f,
@@ -23,6 +9,10 @@ namespace Injector
 	const std::vector<GLfloat> Primitive::SquareNormals =
 	{
 		0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, -1.0f,
+	};
+	const std::vector<GLfloat> Primitive::SquareTexCoords =
+	{
+		0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
 	};
 	const std::vector<GLbyte> Primitive::SquareIndices =
 	{

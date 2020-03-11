@@ -35,9 +35,11 @@ namespace Injector
 		SetUniform(lightDirection, glm::normalize(value));
 	}
 
-	void DiffuseMaterial::OnRender(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj) const
+	void DiffuseMaterial::OnRender(std::shared_ptr<Window> window, const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj, const glm::mat4& viewProj)
 	{
-		Engine::GetWindow()->SetDepthTestFlag(true);
+		window->SetDepthTesting(true);
+		window->SetStencilTesting(false);
+		window->SetColorBlending(false);
 
 		Use();
 		SetMVP(viewProj * model);
