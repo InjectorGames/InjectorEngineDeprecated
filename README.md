@@ -1,3 +1,5 @@
+# Successor ----> [Garden](https://github.com/cfnptr/garden)
+
 ## Development Requirements
 * Machine with Windows/Linux/MacOS
 * At least [OpenGL 3.3](https://wikipedia.org/wiki/OpenGL) support
